@@ -250,6 +250,8 @@
             </Setter.Value>
         </Setter>
     </Style>
+    
+    <!-- Menu Style -->
 
     <Style TargetType="{x:Type Menu}">
         <Setter Property="Background" Value="{DynamicResource Button.Static.Background}"/>
@@ -273,6 +275,28 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style TargetType="{x:Type MenuItem}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="ScrollViewer.PanningMode" Value="Both"/>
+        <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
+        <Style.Triggers>
+            <Trigger Property="Role" Value="TopLevelHeader">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource Menu.Static.Foreground}"/>
+                <Setter Property="Padding" Value="6,0"/>
+            </Trigger>
+            <Trigger Property="Role" Value="TopLevelItem">
+                <Setter Property="Background" Value="{DynamicResource Menu.Static.Background}"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource Menu.Static.Foreground}"/>
+                <Setter Property="Padding" Value="6,0"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ToolBar Styles -->
 
     <Style TargetType="{x:Type ToolBarTray}">
         <Setter Property="Background" Value="{DynamicResource Window.Static.Background}"/>
@@ -309,13 +333,22 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabControl}">
-                    <Grid KeyboardNavigation.TabNavigation="Local">
+                    <Grid x:Name="templateRoot" 
+                          ClipToBounds="True" 
+                          SnapsToDevicePixels="True" 
+                          KeyboardNavigation.TabNavigation="Local">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="ColumnDefinition0"/>
+                            <ColumnDefinition x:Name="ColumnDefinition1" Width="0"/>
+                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition x:Name="RowDefinition0" Height="Auto"/>
+                            <RowDefinition x:Name="RowDefinition1" Height="*"/>
                         </Grid.RowDefinitions>
+                        
                         <Border x:Name="HeaderBorder"
                                 Grid.Row="0"
+                                Grid.Column="0"
                                 Background="{TemplateBinding Background}"
                                 BorderThickness="0"
                                 Padding="2">
@@ -325,8 +358,10 @@
                                       KeyboardNavigation.TabIndex="1"
                                       Background="Transparent"/>
                         </Border>
+                        
                         <Border x:Name="ContentBorder"
                                 Grid.Row="1"
+                                Grid.Column="0"
                                 Background="{TemplateBinding Background}"
                                 KeyboardNavigation.TabNavigation="Local"
                                 KeyboardNavigation.DirectionalNavigation="Contained"
@@ -339,6 +374,38 @@
                                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                         </Border>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="TabStripPlacement" Value="Bottom">
+                            <Setter TargetName="HeaderBorder" Property="Grid.Row" Value="1"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.Row" Value="0"/>
+                            <Setter TargetName="RowDefinition0" Property="Height" Value="*"/>
+                            <Setter TargetName="RowDefinition1" Property="Height" Value="Auto"/>
+                        </Trigger>
+                        <Trigger Property="TabStripPlacement" Value="Left">
+                            <Setter TargetName="HeaderBorder" Property="Grid.Row" Value="0"/>
+                            <Setter TargetName="HeaderBorder" Property="Grid.Column" Value="0"/>
+                            <Setter TargetName="HeaderBorder" Property="Grid.RowSpan" Value="2"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.Row" Value="0"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.Column" Value="1"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.RowSpan" Value="2"/>
+                            <Setter TargetName="ColumnDefinition0" Property="Width" Value="Auto"/>
+                            <Setter TargetName="ColumnDefinition1" Property="Width" Value="*"/>
+                            <Setter TargetName="RowDefinition0" Property="Height" Value="*"/>
+                            <Setter TargetName="RowDefinition1" Property="Height" Value="0"/>
+                        </Trigger>
+                        <Trigger Property="TabStripPlacement" Value="Right">
+                            <Setter TargetName="HeaderBorder" Property="Grid.Row" Value="0"/>
+                            <Setter TargetName="HeaderBorder" Property="Grid.Column" Value="1"/>
+                            <Setter TargetName="HeaderBorder" Property="Grid.RowSpan" Value="2"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.Row" Value="0"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.Column" Value="0"/>
+                            <Setter TargetName="ContentBorder" Property="Grid.RowSpan" Value="2"/>
+                            <Setter TargetName="ColumnDefinition0" Property="Width" Value="*"/>
+                            <Setter TargetName="ColumnDefinition1" Property="Width" Value="Auto"/>
+                            <Setter TargetName="RowDefinition0" Property="Height" Value="*"/>
+                            <Setter TargetName="RowDefinition1" Property="Height" Value="0"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -383,6 +450,20 @@
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource TabItem.Disabled.Background}"/>
                             <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
                         </Trigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType={x:Type TabControl}}}" Value="Left"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="Margin" Value="0,0,0,2"/>
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType={x:Type TabControl}}}" Value="Right"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="Margin" Value="0,0,0,2"/>
+                        </MultiDataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -584,5 +665,9 @@
         <Setter Property="Padding" Value="2"/>
         <Setter Property="Foreground" Value="{DynamicResource Button.Static.Foreground}"/>
         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    </Style>
+
+    <Style TargetType="{x:Type Label}">
+        <Setter Property="Foreground" Value="{DynamicResource Button.Static.Foreground}"/>
     </Style>
 </ResourceDictionary>
