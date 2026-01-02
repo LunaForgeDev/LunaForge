@@ -1,0 +1,627 @@
+﻿<Window x:Class="LunaForge.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LunaForge"
+        xmlns:vm="clr-namespace:LunaForge.ViewModels"
+        xmlns:tools="clr-namespace:LunaForge.Tools"
+        xmlns:controls="clr-namespace:LunaForge.Controls"
+        xmlns:nodify="clr-namespace:Nodify;assembly=Nodify"
+        mc:Ignorable="d"
+        Title="{Binding WindowName}"
+        Width="800"
+        Height="600"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Style="{DynamicResource LFWindow}">
+    <Window.DataContext>
+        <vm:MainWindowModel/>
+    </Window.DataContext>
+    <Window.Resources>
+        <tools:IsUnsavedToColorConverter x:Key="IsUnsavedToColorConverter"/>
+        <tools:FileExtensionToEditorTypeConverter x:Key="FileExtensionToEditorTypeConverter"/>
+        <tools:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <tools:BannedToStrikeThrough x:Key="banned2Strike"/>
+        <tools:BoolToOpacity x:Key="banned2Opacity"/>
+
+        <Style TargetType="RadioButton" x:Key="CustomRadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RadioButton}">
+                        <Border x:Name="border"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1">
+                            <ContentPresenter x:Name="Content"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#446C9CF6"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#446C9CF6"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Cursor" Value="Hand"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#446C9CF6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Lua Editor -->
+        <DataTemplate x:Key="LuaEditorTemplate">
+            <controls:LuaTextEditor
+                Text="{Binding FileContent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                FontSize="12"
+                ShowLineNumbers="True"
+                FontFamily="Consolas"
+                WordWrap="False"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto"/>
+        </DataTemplate>
+        
+        <!-- LFD Editor (TreeView) -->
+        <DataTemplate x:Key="LfdEditorTemplate">
+            <TreeView ItemsSource="{Binding TreeNodes}"
+                      FontFamily="Terminal"
+                      VirtualizingPanel.IsVirtualizing="True">
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding MetaData.Icon}"
+                                   Stretch="Fill" Width="16" Height="16" VerticalAlignment="Center"
+                                   Margin="2,2,3,2"
+                                   Opacity="{Binding IsBanned, Converter={StaticResource banned2Opacity}}"/>
+                            <TextBlock VerticalAlignment="Center" Text="{Binding ScreenString}"
+                                       TextDecorations="{Binding IsBanned, Converter={StaticResource banned2Strike}}"/>
+                            <StackPanel.ContextMenu>
+                                <ContextMenu
+                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="_Edit..."/>
+                                    <Separator/>
+                                    <MenuItem Header="_Cut" Command="{Binding CutCommand}"/>
+                                    <MenuItem Header="_Copy" Command="{Binding CopyCommand}"/>
+                                    <MenuItem Header="_Paste" Command="{Binding PasteCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="_Delete" Command="{Binding DeleteCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="_Fold Tree"/>
+                                    <MenuItem Header="_Unfold Tree"/>
+                                    <Separator/>
+                                    <MenuItem Header="_Ban" Command="{Binding SwitchBanCommand}"
+                                              IsChecked="{Binding IsBanned}"/>
+                                    <Separator/>
+                                    <MenuItem Header="_View Code" Command="{Binding ViewCodeCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="_Save Preset..."/>
+                                    <MenuItem Header="Hot lesbian sex" Visibility="Collapsed"/>
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <EventSetter Event="Selected" Handler="TreeNode_Selected"/>
+                    </Style>
+                </TreeView.ItemContainerStyle>
+            </TreeView>
+        </DataTemplate>
+        
+        <!--#region Shader Editor Grid -->
+        <GeometryDrawing x:Key="SmallGridGeometry"
+                        Geometry="M0,0 L0,1 0.03,1 0.03,0.03 1,0.03 1,0 Z"
+                        Brush="{StaticResource NodifyEditor.SelectionRectangleBackgroundBrush}" />
+
+        <GeometryDrawing x:Key="LargeGridGeometry"
+                        Geometry="M0,0 L0,1 0.015,1 0.015,0.015 1,0.015 1,0 Z"
+                        Brush="{StaticResource NodifyEditor.SelectionRectangleBackgroundBrush}" />
+        <!--#endregion-->
+        
+        <!-- LFS Editor (Shader) -->
+        <DataTemplate x:Key="LfsEditorTemplate">
+            <Grid Background="{StaticResource NodifyEditor.BackgroundBrush}">
+                <Grid.Resources>
+                    <DrawingBrush x:Key="SmallGridLinesDrawingBrush"
+                                TileMode="Tile"
+                                ViewportUnits="Absolute"
+                                Viewport="0 0 20 20"
+                                Transform="{Binding ViewportTransform, ElementName=ShaderEditor}"
+                                Drawing="{StaticResource SmallGridGeometry}" />
+
+                    <DrawingBrush x:Key="LargeGridLinesDrawingBrush"
+                                TileMode="Tile"
+                                ViewportUnits="Absolute"
+                                Opacity="0.5"
+                                Viewport="0 0 100 100"
+                                Transform="{Binding ViewportTransform, ElementName=ShaderEditor}"
+                                Drawing="{StaticResource LargeGridGeometry}" />
+                </Grid.Resources>
+
+                <nodify:NodifyEditor ItemsSource="{Binding Nodes}"
+                                     x:Name="ShaderEditor"
+                                     Background="{StaticResource SmallGridLinesDrawingBrush}">
+                    <nodify:NodifyEditor.DataContext>
+                        <vm:ShaderEditorViewModel/>
+                    </nodify:NodifyEditor.DataContext>
+                    <nodify:NodifyEditor.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ShaderNodeViewModel}">
+                            <nodify:Node Header="{Binding Title}"
+                                         Input="{Binding Inputs}"
+                                         Output="{Binding Outputs}">
+                                <nodify:Node.InputConnectorTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ConnectorViewModel}">
+                                        <nodify:NodeInput Header="{Binding Title}"/>
+                                    </DataTemplate>
+                                </nodify:Node.InputConnectorTemplate>
+                                <nodify:Node.OutputConnectorTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ConnectorViewModel}">
+                                        <nodify:NodeOutput Header="{Binding Title}"/>
+                                    </DataTemplate>
+                                </nodify:Node.OutputConnectorTemplate>
+                            </nodify:Node>
+                        </DataTemplate>
+                    </nodify:NodifyEditor.ItemTemplate>
+                </nodify:NodifyEditor>
+
+                <Grid Background="{StaticResource LargeGridLinesDrawingBrush}"
+                      Panel.ZIndex="-2"/>
+            </Grid>
+        </DataTemplate>
+
+        <tools:FileEditorTemplateSelector x:Key="FileEditorTemplateSelector"/>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Ctrl"
+                    Command="{Binding NewFileCommand}"/>
+        <KeyBinding Key="O" Modifiers="Ctrl"
+                    Command="{Binding OpenFileCommand}" CommandParameter=""/>
+        <KeyBinding Key="S" Modifiers="Ctrl"
+                    Command="{Binding SaveFileCommand}"/>
+        <KeyBinding Key="Z" Modifiers="Ctrl"
+                    Command="{Binding UndoCommand}"/>
+        <KeyBinding Key="Y" Modifiers="Ctrl"
+                    Command="{Binding RedoCommand}"/>
+        <KeyBinding Key="Left" Modifiers="Alt"
+                    Command="{Binding SwitchInsertModeCommand}" CommandParameter="Ancestor"/>
+        <KeyBinding Key="Up" Modifiers="Alt"
+                    Command="{Binding SwitchInsertModeCommand}" CommandParameter="Before"/>
+        <KeyBinding Key="Down" Modifiers="Alt"
+                    Command="{Binding SwitchInsertModeCommand}" CommandParameter="After"/>
+        <KeyBinding Key="Right" Modifiers="Alt"
+                    Command="{Binding SwitchInsertModeCommand}" CommandParameter="Child"/>
+    </Window.InputBindings>
+    <DockPanel>
+        <Border DockPanel.Dock="Top">
+            <Menu>
+                <MenuItem Header="_File">
+                    <MenuItem Header="_New" Command="{Binding NewFileCommand}" InputGestureText="Ctrl+N">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Images/new.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="_Open" Command="{Binding OpenFileCommand}"  InputGestureText="Ctrl+O"
+                              CommandParameter="">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Images/open.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="_Open Recent">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Images/open.png"/>
+                        </MenuItem.Icon>
+                        <MenuItem.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"/>
+                            </DataTemplate>
+                        </MenuItem.ItemTemplate>
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="Command"
+                                        Value="{Binding DataContext.OpenFileCommand,
+                                        RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                <Setter Property="CommandParameter"
+                                        Value="{Binding}"/>
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGestureText="Ctrl+S">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Images/save.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="_Save as" Command="{Binding SaveFileAsCommand}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Images/save.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem Header="_Settings" Command="{Binding OpenSettingsCommand}"/>
+                    <MenuItem Header="_Plugin Manager" Command="{Binding OpenPluginManagerCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="_Close" InputGestureText="Ctrl+Q"/>
+                </MenuItem>
+                <MenuItem Header="_Edit">
+                    <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGestureText="Ctrl+Z">
+                        <MenuItem.Icon>
+                            <Image Source="/Images/undo.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="_Undo" Command="{Binding RedoCommand}" InputGestureText="Ctrl+Y">
+                        <MenuItem.Icon>
+                            <Image Source="/Images/redo.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                </MenuItem>
+                <MenuItem Header="_Tools">
+                    <MenuItem Header="Placeholder..."/>
+                </MenuItem>
+                <MenuItem Header="_Insert">
+                    <MenuItem Command="{Binding SwitchInsertModeCommand}" CommandParameter="Before"
+                                 IsChecked="{Binding IsBeforeState, Mode=OneWay}"
+                                 ToolTip="Insert Before (Alt+Up)">
+                        <MenuItem.Icon>
+                            <Image Source="/Images/up.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding SwitchInsertModeCommand}" CommandParameter="After"
+                              IsChecked="{Binding IsAfterState, Mode=OneWay}"
+                              ToolTip="Insert After (Alt+Down)">
+                        <MenuItem.Icon>
+                            <Image Source="/Images/down.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding SwitchInsertModeCommand}" CommandParameter="Child"
+                              IsChecked="{Binding IsChildState, Mode=OneWay}"
+                              ToolTip="Insert As Child (Alt+Right)">
+                        <MenuItem.Icon>
+                            <Image Source="/Images/child.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="_Presets">
+                    
+                </MenuItem>
+                <MenuItem Header="_Git">
+
+                </MenuItem>
+                <MenuItem Header="_Help">
+                    <MenuItem Header="_About" Command="{Binding OpenAboutCommand}"/>
+                    <MenuItem Header="_Documentation"/>
+                    <MenuItem Header="_Redo Initial Setup"/>
+                </MenuItem>
+            </Menu>
+        </Border>
+        <Border DockPanel.Dock="Top">
+            <ToolBarTray>
+                <ToolBar VerticalAlignment="Top">
+                    <!-- File Operations -->
+                    <Button Command="{Binding NewFileCommand}" ToolTip="New File (Ctrl+N)">
+                        <Image Source="/Images/new.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button Command="{Binding OpenFileCommand}" ToolTip="Open File (Ctrl+O)">
+                        <Image Source="/Images/open.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button Command="{Binding SaveFileCommand}" ToolTip="Save File (Ctrl+S)">
+                        <Image Source="/Images/save.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Separator/>
+                    
+                    <!-- Code Operations -->
+                    <Button ToolTip="View code in this node (Alt+C)">
+                        <Image Source="/Images/viewcode.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Export Code">
+                        <Image Source="/Images/savecode.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Separator/>
+                    
+                    <!-- Undo/Redo -->
+                    <Button Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)">
+                        <Image Source="/Images/undo.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button Command="{Binding RedoCommand}" ToolTip="Redo (Ctrl+Y)">
+                        <Image Source="/Images/redo.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Separator/>
+
+                    <!-- Clipboard -->
+                    <Button ToolTip="Cut (Ctrl+X)">
+                        <Image Source="/Images/cut.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Copy (Ctrl+C)">
+                        <Image Source="/Images/copy.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Paste (Ctrl+V)">
+                        <Image Source="/Images/paste.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Separator/>
+                    
+                    <!-- Delete -->
+                    <Button ToolTip="Delete (Del)">
+                        <Image Source="/Images/delete.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Separator/>
+
+                    <Button ToolTip="Pack Project">
+                        <Image Source="/Images/pack.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Run Project (F5)">
+                        <Image Source="/Images/run.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Test Spell-Card (F6)">
+                        <Image Source="/Images/debugsc.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button ToolTip="Test Stage (F7)">
+                        <Image Source="/Images/debugstage.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+
+                    <Separator/>
+
+                    <TextBox Width="40"/>
+                    <Button ToolTip="Go To Line...">
+                        <Image Source="/Images/find.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+
+                    <Separator/>
+                    
+                    <!-- Insert Modes -->
+                    <!--
+                    <RadioButton Command="{Binding SwitchInsertModeCommand}" CommandParameter="Ancestor"
+                                 IsChecked="{Binding IsAncestorState, Mode=OneWay}"
+                                 Style="{StaticResource CustomRadioButton}"
+                                 ToolTip="Insert As Ancestor (Alt+Left)">
+                        <Image Source="/Images/parent.png" Stretch="Fill" Width="24" Height="24"/>
+                    </RadioButton>
+                    -->
+                    <RadioButton Command="{Binding SwitchInsertModeCommand}" CommandParameter="Before"
+                                 IsChecked="{Binding IsBeforeState, Mode=OneWay}"
+                                 Style="{StaticResource CustomRadioButton}"
+                                 ToolTip="Insert Before (Alt+Up)">
+                        <Image Source="/Images/up.png" Stretch="Fill" Width="24" Height="24"/>
+                    </RadioButton>
+                    <RadioButton Command="{Binding SwitchInsertModeCommand}" CommandParameter="After"
+                                 IsChecked="{Binding IsAfterState, Mode=OneWay}"
+                                 Style="{StaticResource CustomRadioButton}"
+                                 ToolTip="Insert After (Alt+Down)">
+                        <Image Source="/Images/down.png" Stretch="Fill" Width="24" Height="24"/>
+                    </RadioButton>
+                    <RadioButton Command="{Binding SwitchInsertModeCommand}" CommandParameter="Child"
+                                 IsChecked="{Binding IsChildState, Mode=OneWay}"
+                                 Style="{StaticResource CustomRadioButton}"
+                                 ToolTip="Insert As Child (Alt+Right)">
+                        <Image Source="/Images/child.png" Stretch="Fill" Width="24" Height="24"/>
+                    </RadioButton>
+                </ToolBar>
+            </ToolBarTray>
+        </Border>
+        <Border DockPanel.Dock="Top">
+            <TabControl ItemsSource="{Binding ToolboxCategories}"
+                        Visibility="{Binding CurrentFileIsLFD, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TabControl.Resources>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Margin" Value="0"/>
+                    </Style>
+                </TabControl.Resources>
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding CategoryName}"/>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <WrapPanel Orientation="Horizontal" Margin="5">
+                            <ItemsControl ItemsSource="{Binding Items}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ContentControl>
+                                            <ContentControl.Style>
+                                                <Style TargetType="ContentControl">
+                                                    <Setter Property="Content">
+                                                        <Setter.Value>
+                                                            <Button Command="{Binding DataContext.InsertNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    ToolTip="{Binding DisplayName}"
+                                                                    Padding="4">
+                                                                <Image Source="{Binding IconPath}"
+                                                                       Width="24" Height="24"
+                                                                       Stretch="Fill"/>
+                                                            </Button>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                                            <Setter Property="Content">
+                                                                <Setter.Value>
+                                                                    <Separator/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ContentControl.Style>
+                                        </ContentControl>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </WrapPanel>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
+        </Border>
+        <Grid Margin="5,0,5,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="50"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="3.8*" MinWidth="50"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*" MinWidth="50"/>
+            </Grid.ColumnDefinitions>
+            <TreeView Grid.Column="0"
+                      ItemsSource="{Binding FileViewer.RootItems}">
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}"
+                                       Margin="0,0,5,0"/>
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="_Create Folder"/>
+                                    <MenuItem Header="_Create File"/>
+                                    <Separator/>
+                                    <MenuItem Header="_Delete"/>
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <EventSetter Event="PreviewMouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
+                        <EventSetter Event="Expanded" Handler="TreeViewItem_Expanded"/>
+                    </Style>
+                </TreeView.ItemContainerStyle>
+            </TreeView>
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Opacity="0.1"/>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="4*" MinHeight="50"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="1.2*" MinHeight="50"/>
+                </Grid.RowDefinitions>
+                <TabControl Grid.Row="0"
+                            ItemsSource="{Binding Project.Files}"
+                            SelectedItem="{Binding SelectedFile, Mode=TwoWay}">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="35"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding FileName, Mode=OneWay}"
+                                           Grid.Column="0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding IsUnsaved, Converter={StaticResource IsUnsavedToColorConverter}}"/>
+                                <Button Content="X"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Background="{x:Null}"
+                                        BorderBrush="{x:Null}"
+                                        Tag="{Binding FileHash}"
+                                        Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding FileHash}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <ContentControl Content="{Binding}"
+                                            ContentTemplateSelector="{StaticResource FileEditorTemplateSelector}"/>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+                <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Opacity="0.1"/>
+                <Grid Grid.Row="2"
+                      VerticalAlignment="Stretch"
+                      HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="50"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*" MinWidth="50"/>
+                    </Grid.ColumnDefinitions>
+                    <TabControl Grid.Column="0">
+                        <TabItem Header="Traces">
+                            <DataGrid VerticalScrollBarVisibility="Visible" AutoGenerateColumns="False"
+                                      IsReadOnly="True" CanUserAddRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn CanUserResize="False">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Image Height="12" Width="12" Stretch="Fill"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="400" Header="Message"/>
+                                    <DataGridTextColumn Width="100" Header="Source"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        
+                    </TabControl>
+                    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Opacity="0.1"/>
+                    <TabControl Grid.Column="2">
+                        <TabItem Header="Console">
+
+                        </TabItem>
+                        <TabItem Header="LuaSTG Log">
+                            <TextBox VerticalScrollBarVisibility="Visible"
+                                     Text="{Binding DebugString}" IsReadOnly="True"
+                                     tools:TextBoxScrollBehavior.AutoScrollToEnd="True"/>
+                        </TabItem>
+                        <TabItem Header="Editor Log">
+                            <TextBox VerticalScrollBarVisibility="Visible"
+                                     Text="{Binding EditorLog}" IsReadOnly="True"
+                                     tools:TextBoxScrollBehavior.AutoScrollToEnd="True"/>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Grid>
+            <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" Opacity="0.1"/>
+            <DataGrid Grid.Column="4" AutoGenerateColumns="False"
+                      CanUserResizeRows="False" CanUserAddRows="False"
+                      VerticalScrollBarVisibility="Visible"
+                      CanUserDeleteRows="False"
+                      ItemsSource="{Binding SelectedFile.SelectedNode.Attributes}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Attributes"
+                                        IsReadOnly="True"
+                                        Width="100"
+                                        Binding="{Binding Name}"/>
+                    <DataGridTemplateColumn Header="Parameter" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                         BorderThickness="0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <ComboBox IsEditable="True" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                          Height="20" BorderThickness="0"
+                                          IsTextSearchEnabled="False" Padding="0,0,10,0"
+                                          Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Tag="{Binding Path=EditorWindow}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn CanUserResize="False" IsReadOnly="True">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="..." Width="25">
+
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+</Window>

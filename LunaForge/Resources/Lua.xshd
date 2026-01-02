@@ -1,0 +1,109 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="Lua" extensions=".lua" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#57A64A" fontStyle="italic" />
+  <Color name="String" foreground="#D69D85" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Keywords" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Builtin" foreground="#4EC9B0" />
+  <Color name="Functions" foreground="#DCDCAA" />
+  <Color name="Operators" foreground="#B4B4B4" />
+
+  <RuleSet ignoreCase="false">
+    <!-- Comments -->
+    <Span color="Comment" begin="--\[\[" end="\]\]" multiline="true"/>
+    <Span color="Comment" begin="--" end="\n" />
+
+    <!-- Strings -->
+    <Span color="String" begin="&quot;" end="&quot;" escapeCharacter="\">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="'" end="'" escapeCharacter="\">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="\[\[" end="\]\]" multiline="true"/>
+
+    <!-- Numbers -->
+    <Rule color="Number">
+      \b0[xX][0-9a-fA-F]+  # hex number
+      |
+      \b\d+(\.\d+)?([eE][+-]?\d+)?  # decimal number
+    </Rule>
+
+    <!-- Keywords -->
+    <Keywords color="Keywords">
+      <Word>and</Word>
+      <Word>break</Word>
+      <Word>do</Word>
+      <Word>else</Word>
+      <Word>elseif</Word>
+      <Word>end</Word>
+      <Word>false</Word>
+      <Word>for</Word>
+      <Word>function</Word>
+      <Word>goto</Word>
+      <Word>if</Word>
+      <Word>in</Word>
+      <Word>local</Word>
+      <Word>nil</Word>
+      <Word>not</Word>
+      <Word>or</Word>
+      <Word>repeat</Word>
+      <Word>return</Word>
+      <Word>then</Word>
+      <Word>true</Word>
+      <Word>until</Word>
+      <Word>while</Word>
+    </Keywords>
+
+    <!-- Built-in functions -->
+    <Keywords color="Builtin">
+      <Word>assert</Word>
+      <Word>collectgarbage</Word>
+      <Word>dofile</Word>
+      <Word>error</Word>
+      <Word>getmetatable</Word>
+      <Word>ipairs</Word>
+      <Word>load</Word>
+      <Word>loadfile</Word>
+      <Word>next</Word>
+      <Word>pairs</Word>
+      <Word>pcall</Word>
+      <Word>print</Word>
+      <Word>rawequal</Word>
+      <Word>rawget</Word>
+      <Word>rawlen</Word>
+      <Word>rawset</Word>
+      <Word>require</Word>
+      <Word>select</Word>
+      <Word>setmetatable</Word>
+      <Word>tonumber</Word>
+      <Word>tostring</Word>
+      <Word>type</Word>
+      <Word>xpcall</Word>
+      <Word>_G</Word>
+      <Word>_VERSION</Word>
+    </Keywords>
+
+    <!-- Standard libraries -->
+    <Keywords color="Builtin">
+      <Word>coroutine</Word>
+      <Word>debug</Word>
+      <Word>io</Word>
+      <Word>math</Word>
+      <Word>os</Word>
+      <Word>package</Word>
+      <Word>string</Word>
+      <Word>table</Word>
+      <Word>utf8</Word>
+    </Keywords>
+
+    <!-- Operators -->
+    <Rule color="Operators">
+      [+\-/*%^#=&lt;&gt;~]
+    </Rule>
+  </RuleSet>
+</SyntaxDefinition>

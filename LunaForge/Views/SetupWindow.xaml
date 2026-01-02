@@ -1,0 +1,351 @@
+﻿<Window x:Class="LunaForge.Views.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LunaForge.Views"
+        xmlns:vm="clr-namespace:LunaForge.ViewModels"
+        xmlns:system="clr-namespace:System;assembly=netstandard"
+        xmlns:tools="clr-namespace:LunaForge.Tools"
+        mc:Ignorable="d"
+        Title="Getting Started"
+        Height="500"
+        Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#00000000"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        Style="{DynamicResource LFWindow}">
+    <Window.DataContext>
+        <vm:SetupViewModel/>
+    </Window.DataContext>
+    <Window.Resources>
+        <tools:Int32ToVisibilityConverter x:Key="Int32ToVisibilityConverter"/>
+        
+        <Style x:Key="PageStyle" TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed"/>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="24,10"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#106EBE"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#005A9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="24,10"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="MinWidth" Value="80"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E0E0E0"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#D0D0D0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Border Background="#E6000000"/>
+        <Border Background="White"
+                CornerRadius="8"
+                Width="800"
+                Height="500"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.5"/>
+            </Border.Effect>
+            
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+
+                <Border Grid.Row="0" 
+                        Background="White" 
+                        Padding="48,40,48,20" 
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="0,0,0,1">
+                    <TextBlock Text="{Binding PageTitle}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="#333"/>
+                </Border>
+
+
+                <ScrollViewer Grid.Row="1" 
+                              Background="White" 
+                              Padding="48,40,48,40"
+                              VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <!-- Page 0: Welcome -->
+                        <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=0}">
+                            <TextBlock Text="Welcome to LunaForge!"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,20"/>
+                            
+                            <TextBlock Text="This editor is still in early development. Expect some bugs or breaking changes."
+                                       FontSize="14"
+                                       Foreground="#666"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="Let's get you set up in just a few steps."
+                                       FontSize="14"
+                                       Foreground="#666"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Page 1: Projects Folder -->
+                        <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=1}">
+                            <TextBlock Text="Choose where to store your projects"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,20"/>
+                            
+                            <TextBlock Text="Projects folder:"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,8"/>
+                            
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding ProjectsFolder, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="36"
+                                         FontSize="12"
+                                         Foreground="#333"
+                                         Background="White"
+                                         BorderBrush="#D0D0D0"
+                                         BorderThickness="1"
+                                         VerticalContentAlignment="Center"
+                                         Margin="0,0,8,0"/>
+                                
+                                <Button Grid.Column="1"
+                                        Content="Browse..."
+                                        Command="{Binding BrowseProjectsFolderCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Height="36"
+                                        Padding="16,8"/>
+                            </Grid>
+                            
+                            <TextBlock Text="All your LunaForge projects will be stored in this location."
+                                       FontSize="11"
+                                       Foreground="#999"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Page 2: Project Author -->
+                        <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=2}">
+                            <TextBlock Text="Set your default author name"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,20"/>
+                            
+                            <TextBlock Text="Project Author:"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,8"/>
+                            
+                            <TextBox Text="{Binding ProjectAuthor, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36"
+                                     FontSize="12"
+                                     Foreground="#333"
+                                     Background="White"
+                                     BorderBrush="#D0D0D0"
+                                     BorderThickness="1"
+                                     VerticalContentAlignment="Center"
+                                     Margin="0,0,0,10"/>
+                            
+                            <TextBlock Text="This will be used as the default author for new projects."
+                                       FontSize="11"
+                                       Foreground="#999"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Page 3: Done -->
+                        <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=3}">
+                            <TextBlock Text="You're all set!"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,20"/>
+                            
+                            <TextBlock Text="LunaForge is now ready to use."
+                                       FontSize="14"
+                                       Foreground="#666"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,30"/>
+                            
+                            <TextBlock Text="Links:"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,10"/>
+                            
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Margin="0,0,0,8">
+                                    <Hyperlink NavigateUri="https://github.com/RulHolos/LunaForge"
+                                               RequestNavigate="Hyperlink_RequestNavigate">
+                                        <Run Text="🔗 LunaForge on GitHub"/>
+                                    </Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+
+                <!-- Footer -->
+                <Border Grid.Row="2" 
+                        Background="#F8F8F8" 
+                        Padding="48,16,48,16" 
+                        BorderBrush="#E0E0E0"
+                        BorderThickness="0,1,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" 
+                                    VerticalAlignment="Center" 
+                                    Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" 
+                                     Margin="0,0,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#DDD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentPage}" Value="0">
+                                                <Setter Property="Fill" Value="#0078D4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <Ellipse Width="8" Height="8" 
+                                     Margin="0,0,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#DDD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentPage}" Value="1">
+                                                <Setter Property="Fill" Value="#0078D4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <Ellipse Width="8" Height="8" 
+                                     Margin="0,0,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#DDD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentPage}" Value="2">
+                                                <Setter Property="Fill" Value="#0078D4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <Ellipse Width="8" Height="8">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#DDD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentPage}" Value="3">
+                                                <Setter Property="Fill" Value="#0078D4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                        </StackPanel>
+
+
+                        <StackPanel Grid.Column="1" 
+                                    Orientation="Horizontal" 
+                                    HorizontalAlignment="Right">
+                            <Button Content="Back"
+                                    Command="{Binding PreviousPageCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}">
+                                <Button.Visibility>
+                                    <Binding Path="IsFirstPage">
+                                        <Binding.Converter>
+                                            <tools:InvertedBoolConverter/>
+                                        </Binding.Converter>
+                                    </Binding>
+                                </Button.Visibility>
+                            </Button>
+                            
+                            <Button Content="{Binding NextButtonText}"
+                                    Command="{Binding NextPageCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

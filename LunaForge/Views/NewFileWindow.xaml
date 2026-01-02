@@ -1,0 +1,128 @@
+﻿<Window x:Class="LunaForge.Views.NewFileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LunaForge.Views"
+        xmlns:vm="clr-namespace:LunaForge.ViewModels"
+        xmlns:models="clr-namespace:LunaForge.Models"
+        mc:Ignorable="d"
+        Title="New File..."
+        Height="450"
+        Width="800"
+        MinHeight="400"
+        MinWidth="200"
+        WindowStartupLocation="CenterOwner"
+        Style="{DynamicResource LFWindow}">
+    <Window.DataContext>
+        <vm:NewFileWindowModel/>
+    </Window.DataContext>
+    <DockPanel>
+        <Grid DockPanel.Dock="Bottom">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="28"/>
+                <RowDefinition Height="32"/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Column="0" Grid.Row="0" Content="File Type:"/>
+            <ComboBox Margin="2" Grid.Column="1" Grid.Row="0" 
+                      SelectedItem="{Binding SelectedFileType}">
+                <ComboBox.ItemsSource>
+                    <x:Array Type="models:FileType">
+                        <models:FileType>Lfd</models:FileType>
+                        <models:FileType>Lua</models:FileType>
+                        <models:FileType>Lfs</models:FileType>
+                    </x:Array>
+                </ComboBox.ItemsSource>
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="Lfd">
+                                            <Setter Property="Text" Value="LunaForge Definition"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding}" Value="Lua">
+                                            <Setter Property="Text" Value="Lua Script"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding}" Value="Lfs">
+                                            <Setter Property="Text" Value="LunaForge Shader"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <Label Grid.Column="0" Grid.Row="1" Content="Name:"/>
+            <TextBox Margin="2" Grid.Column="1" Grid.Row="1" Text="{Binding FileName}"
+                     VerticalContentAlignment="Center"/>
+            
+            <Label Grid.Column="0" Grid.Row="2" Content="Author:"/>
+            <TextBox Margin="2" Grid.Column="1" Grid.Row="2" Text="{Binding Author}"
+                     VerticalContentAlignment="Center"/>
+            
+            <Label Grid.Column="0" Grid.Row="3" Content="Path:"/>
+            <DockPanel Grid.Column="1" Grid.Row="3"
+                        HorizontalAlignment="Stretch">
+                <Button Margin="2" DockPanel.Dock="Right"
+                        Content="Browse..."
+                        Padding="5,0"
+                        Command="{Binding BrowsePathCommand}"/>
+                <TextBox Margin="2" Text="{Binding FilePath}"
+                         VerticalContentAlignment="Center"/>
+            </DockPanel>
+            
+            <StackPanel Grid.Row="4" Grid.ColumnSpan="2"
+                        HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button Content="OK" Margin="2" Padding="5" Command="{Binding OkCommand}"/>
+                <Button Content="Cancel" Margin="2" Padding="5" Command="{Binding CancelCommand}"/>
+            </StackPanel>
+        </Grid>
+        <Grid DockPanel.Dock="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <ListBox Grid.Column="0" Margin="10"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     Grid.IsSharedSizeScope="True"
+                     ItemsSource="{Binding FilteredTemplates}"
+                     SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Height="96" Width="96" Orientation="Vertical">
+                            <Image VerticalAlignment="Center" Source="{Binding Icon}"
+                                   Stretch="Fill" Width="48" Height="48"
+                                   Margin="0"/>
+                            <TextBlock Height="48" TextWrapping="Wrap" TextAlignment="Center"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       Text="{Binding Text}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <DockPanel Grid.Column="1">
+                <Label DockPanel.Dock="Top" Content="Description"/>
+                <TextBlock Margin="10"
+                           TextWrapping="Wrap"
+                           Text="{Binding SelectedTemplate.Description}"/>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>
