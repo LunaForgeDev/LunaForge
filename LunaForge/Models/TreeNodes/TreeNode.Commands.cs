@@ -74,18 +74,10 @@ public abstract partial class TreeNode
         try
         {
             ProjectCompilerService compiler = new(MainWindowModel.Project);
-            (bool, string) res = compiler.CompileLFDFile(ParentTree.FilePath, true).Result;
 
-            if (res.Item1)
-            {
-                string code = res.Item2;
-                CodePreviewWindow preview = new(code);
-                preview.ShowDialog();
-            }
-            else
-            {
-                Logger.Error($"Failed to compile code.");
-            }
+            string code = string.Concat(ToLua(0));
+            CodePreviewWindow preview = new(code);
+            preview.ShowDialog();
         }
         catch (Exception ex)
         {
