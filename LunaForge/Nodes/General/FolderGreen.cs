@@ -11,28 +11,35 @@ using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 
 namespace LunaForge.Nodes.General;
 
-[Serializable, NodeIcon("folder.png")]
-[CannotDelete, CannotBan]
+[Serializable, NodeIcon("foldergreen.png")]
 [IsFolder]
-public class RootFolder : TreeNode
+public class FolderGreen : TreeNode
 {
-    public override string NodeName { get; set; } = "Root";
+    public override string NodeName { get; set; } = "Folder Green";
 
     [JsonConstructor]
-    public RootFolder() : base() { }
+    public FolderGreen() : base() { }
 
-    public RootFolder(DocumentFileLFD workspace)
+    public FolderGreen(DocumentFileLFD workspace)
+        : this(workspace, "Folder")
+    { }
+
+    public FolderGreen(DocumentFileLFD workspace, string name)
         : base(workspace)
     { }
 
+    [JsonIgnore]
+    [NodeAttribute("Folder")]
+    public string Name { get; set; }
+
     public override string ToString()
     {
-        return $"Root - {ParentTree.FileName}";
+        return $"==[ {Name} ]==";
     }
 
     public override object Clone()
     {
-        RootFolder n = new();
+        FolderGreen n = new();
         n.DeepCopyFrom(this);
         return n;
     }

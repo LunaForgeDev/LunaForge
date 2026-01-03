@@ -39,11 +39,38 @@
     <None Remove="Images\up.png" />
     <None Remove="Images\viewcode.png" />
     <None Remove="Images\Warning.png" />
+    <None Remove="Nodes\Images\advancedrepeat.png" />
+    <None Remove="Nodes\Images\archispace.png" />
+    <None Remove="Nodes\Images\break.png" />
+    <None Remove="Nodes\Images\code.png" />
+    <None Remove="Nodes\Images\codeblock.png" />
+    <None Remove="Nodes\Images\codesegment.png" />
+    <None Remove="Nodes\Images\comment.png" />
+    <None Remove="Nodes\Images\CustomInterpolationVariable.png" />
+    <None Remove="Nodes\Images\definemacro.png" />
+    <None Remove="Nodes\Images\elseif.png" />
+    <None Remove="Nodes\Images\Error.png" />
     <None Remove="Nodes\Images\folder.png" />
     <None Remove="Nodes\Images\folderblue.png" />
     <None Remove="Nodes\Images\foldergreen.png" />
     <None Remove="Nodes\Images\folderred.png" />
     <None Remove="Nodes\Images\folderyellow.png" />
+    <None Remove="Nodes\Images\if.png" />
+    <None Remove="Nodes\Images\Info.png" />
+    <None Remove="Nodes\Images\LinearVariable.png" />
+    <None Remove="Nodes\Images\pack.png" />
+    <None Remove="Nodes\Images\patch.png" />
+    <None Remove="Nodes\Images\pcall.png" />
+    <None Remove="Nodes\Images\ReboundingVariable.png" />
+    <None Remove="Nodes\Images\region.png" />
+    <None Remove="Nodes\Images\repeat.png" />
+    <None Remove="Nodes\Images\SinusoidalInterpolationVariable.png" />
+    <None Remove="Nodes\Images\SinusoidalMovementVariable.png" />
+    <None Remove="Nodes\Images\SinusoidalOscillationVariable.png" />
+    <None Remove="Nodes\Images\unidentifiedNode.png" />
+    <None Remove="Nodes\Images\userdefinednode.png" />
+    <None Remove="Nodes\Images\Warning.png" />
+    <None Remove="Nodes\Images\while.png" />
     <None Remove="Resources\JBMono.ttf" />
   </ItemGroup>
 
@@ -159,6 +186,39 @@
     <Resource Include="Images\Warning.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Nodes\Images\advancedrepeat.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\archispace.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\break.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\code.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\codeblock.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\codesegment.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\comment.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\CustomInterpolationVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\definemacro.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\elseif.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\Error.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Nodes\Images\folder.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -172,6 +232,54 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Nodes\Images\folderyellow.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\if.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\Info.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\LinearVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\pack.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\patch.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\pcall.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\ReboundingVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\region.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\repeat.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\SinusoidalInterpolationVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\SinusoidalMovementVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\SinusoidalOscillationVariable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\unidentifiedNode.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\userdefinednode.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\Warning.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Nodes\Images\while.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\JBMono.ttf">
