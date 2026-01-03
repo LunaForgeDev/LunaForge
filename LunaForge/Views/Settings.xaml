@@ -13,7 +13,31 @@
     <Window.DataContext>
         <vm:SettingsViewModel/>
     </Window.DataContext>
-    <Grid>
-        
-    </Grid>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button Content="Apply &amp; Close"
+                    Margin="2" Padding="5"
+                    Command="{Binding ApplyAndCloseCommand}"/>
+            <Button Content="Apply"
+                    Margin="2" Padding="5"
+                    Command="{Binding ApplyCommand}"/>
+            <Button Content="Cancel"
+                    Margin="2" Padding="5"
+                    Command="{Binding CancelCommand}"/>
+        </StackPanel>
+        <TabControl TabStripPlacement="Left"
+                    Margin="5"
+                    DockPanel.Dock="Top">
+            <TabItem Header="General">
+            </TabItem>
+            <TabItem Header="Services">
+            </TabItem>
+            <TabItem Header="Default Project">
+            </TabItem>
+            <TabItem Header="Current Project">
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>

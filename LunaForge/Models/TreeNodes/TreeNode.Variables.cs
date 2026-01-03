@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using LunaForge.Models.Documents;
 using LunaForge.Services;
 using Newtonsoft.Json;
 using Serilog;
@@ -13,7 +14,7 @@ namespace LunaForge.Models.TreeNodes;
 
 public abstract partial class TreeNode : ObservableObject
 {
-    private static ILogger Logger = CoreLogger.Create("GLN"); // Generic Lua Node
+    private static ILogger Logger = CoreLogger.Create("TreeNode"); // Generic Lua Node
 
     [JsonIgnore]
     public abstract string NodeName { get; set; }
@@ -22,7 +23,7 @@ public abstract partial class TreeNode : ObservableObject
     [JsonIgnore]
     public TreeNode ParentNode { get; set; }
     [JsonIgnore]
-    public DocumentFile ParentTree { get; set; }
+    public DocumentFileLFD ParentTree { get; set; }
 
     [JsonIgnore]
     public string NodeHash { get; set; } = Guid.NewGuid().ToString();

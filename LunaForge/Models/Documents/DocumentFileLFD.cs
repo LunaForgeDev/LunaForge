@@ -1,4 +1,5 @@
-﻿using LunaForge.Helpers;
+﻿using LunaForge.Backend.EditorCommands;
+using LunaForge.Helpers;
 using LunaForge.Nodes.General;
 using LunaForge.ViewModels;
 using Newtonsoft.Json;
@@ -143,5 +144,57 @@ public partial class DocumentFileLFD : DocumentFile
                 await project.SymbolIndex.IndexOpenedDocumentAsync(this);
             }
         });
+    }
+
+    public bool Insert(TreeNode parent, TreeNode node, InsertMode insertMode, bool doInvoke = true)
+    {
+        try
+        {
+            if (parent == null)
+                return false;
+            if (this is not DocumentFileLFD)
+                return false;
+            if (node.Children.Count > 0)
+                node.IsExpanded = true;
+            Command cmd = null;
+            node.ParentTree = (DocumentFileLFD)this;
+            if (parent.ParentNode == null && insertMode != InsertMode.Child)
+                return false;
+            switch (insertMode)
+            {
+                case InsertMode.Ancestor:
+                    break;
+                case InsertMode.Before:
+                    if (!parent.ParentNode.ValidateChild(node))
+                        return false;
+                    cmd = new InsertBeforeCommand(parent, node);
+                    break;
+                case InsertMode.After:
+                    if (!parent.ParentNode.ValidateChild(node))
+                        return false;
+                    cmd = new InsertAfterCommand(parent, node);
+                    break;
+                case InsertMode.Child:
+                    if (!parent.ValidateChild(node))
+                        return false;
+                    cmd = new InsertChildCommand(parent, node);
+                    break;
+            }
+            if (AddAndExecuteCommand(cmd))
+            {
+                RevealTreeNode(node);
+                if (doInvoke)
+                {
+                    //CreateInvoke(node);
+                }
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to insert node. Reason:\n{ex}");
+            return false;
+        }
     }
 }

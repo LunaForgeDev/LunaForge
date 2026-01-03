@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using LunaForge.Backend.EditorCommands;
 using LunaForge.Models;
+using LunaForge.Models.Documents;
 using LunaForge.Services;
 using LunaForge.Views;
 using Microsoft.Win32;
@@ -385,15 +386,20 @@ public partial class MainWindowModel : ObservableObject
 
     public void InsertNode(TreeNode node, string displayName)
     {
+        if (SelectedFile.SelectedNode == null)
+        {
+            Logger.Warning("No node selected to insert into.");
+            return;
+        }
+
         TreeNode parent = SelectedFile.SelectedNode;
-        
         if (node == null)
         {
             Logger.Warning($"Failed to create node from item: {displayName}");
             return;
         }
-
-        SelectedFile.Insert(parent, node, CurrentInsertMode);
+        if (SelectedFile is DocumentFileLFD ldfFile)
+            ldfFile.Insert(parent, node, CurrentInsertMode);
     }
 
     #endregion

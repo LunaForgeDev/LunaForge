@@ -12,7 +12,13 @@ public abstract partial class TreeNode
 
     public bool ValidateChild(TreeNode toValidate)
     {
-        return ValidateChild(this, toValidate);
+        bool gotValidated = ValidateChild(this, toValidate);
+        if (gotValidated)
+            Logger.Debug($"Node '{toValidate.NodeName}' got validated");
+        else
+            Logger.Debug($"Node '{toValidate.NodeName}' failed validation");
+
+        return gotValidated;
     }
 
     public bool ValidateChild(TreeNode parent, TreeNode toValidate)
@@ -28,8 +34,39 @@ public abstract partial class TreeNode
             }
             return true;
         }
+        if (MetaData.Leaf)
+            return false;
+        var e = this != parent
+            ? GetRealChildren().Concat(parent.GetRealChildren()).Distinct()
+            : GetRealChildren();
 
+        if (!toValidate.MatchParents(this))
+            return false;
+
+        Stack<TreeNode> stack = [];
+        stack.Push(toValidate);
+        TreeNode cur;
+        while (stack.Count != 0)
+        {
+            cur = stack.Pop();
+            foreach (TreeNode t in cur.Children)
+                stack.Push(t);
+        }
         return true;
+    }
+
+    private bool MatchParents(TreeNode toMatch)
+    {
+        Type[] ts = MetaData.RequireParent;
+        if (toMatch == null) return false;
+        if (ts == null) return true;
+        
+        foreach (Type t in ts)
+        {
+            if (toMatch.GetType().Equals(t))
+                return true;
+        }
+        return false;
     }
 
     #endregion

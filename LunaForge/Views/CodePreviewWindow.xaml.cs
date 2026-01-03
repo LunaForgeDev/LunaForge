@@ -22,9 +22,9 @@ namespace LunaForge.Views
         }
 
         public CodePreviewWindow(string code)
-            : this()
         {
             CodeText = code;
+            InitializeComponent();
         }
     }
 }

@@ -54,7 +54,7 @@ public class PlaySE : TreeNode
 
     public override object Clone()
     {
-        PlaySE n = new();
+        PlaySE n = new(ParentTree);
         n.DeepCopyFrom(this);
         return n;
     }

@@ -88,7 +88,36 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
 
     protected IEnumerable<string> ToLua(int spacing, IEnumerable<TreeNode> children)
     {
-        yield return "ta mère";
+        bool childof = false;
+        TreeNode temp;
+
+        bool firstC = false;
+        bool folderFound = false;
+        bool equalFound = false;
+
+        if (false)
+        {
+            foreach (TreeNode t in GetRealChildren())
+            {
+                if (!t.IsBanned)
+                {
+                    foreach (var a in t.ToLua(spacing))
+                        yield return a;
+                    if (true)
+                    {
+                        // TODO: Implement SCDebugger
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (TreeNode t in children)
+            {
+                foreach (var a in t.ToLua(spacing))
+                    yield return a;
+            }
+        }
     }
 
     public abstract IEnumerable<Tuple<int, TreeNode>> GetLines();
@@ -96,15 +125,9 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
     protected IEnumerable<Tuple<int, TreeNode>> GetChildLines()
     {
         foreach (TreeNode t in Children)
-        {
             if (!t.IsBanned)
-            {
                 foreach (Tuple<int, TreeNode> ti in t.GetLines())
-                {
                     yield return ti;
-                }
-            }
-        }
     }
 
     public static string Indent(int spacing)

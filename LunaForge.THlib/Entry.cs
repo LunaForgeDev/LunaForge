@@ -5,6 +5,7 @@ using Serilog;
 using LunaForge.Models;
 using LunaForge.THlib.Nodes;
 using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
+using LunaForge.THlib.Nodes.Task;
 
 namespace LunaForge.THlib;
 
@@ -25,7 +26,10 @@ public class Plugin : NodeLibraryBase
     {
         var data = CreateCategory("Data");
         var stage = CreateCategory("Stage");
+        #region Task
         var task = CreateCategory("Task");
+        task.AddNode<TaskNode>("Task");
+        #endregion
         var enemy = CreateCategory("Enemy");
         var boss = CreateCategory("Boss");
         var bullet = CreateCategory("Bullet");
@@ -33,10 +37,10 @@ public class Plugin : NodeLibraryBase
         var @object = CreateCategory("Object");
         var control = CreateCategory("Control");
         var graphics = CreateCategory("Graphics");
+        #region Audio
         var audio = CreateCategory("Audio");
-
         audio.AddNode<PlaySE>("Play Sound");
-
+        #endregion
         var render = CreateCategory("Render");
         var background = CreateCategory("Background");
         var player = CreateCategory("Player");

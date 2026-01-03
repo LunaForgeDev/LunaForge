@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using LunaForge.Backend.EditorCommands;
+using LunaForge.Models.Documents;
 using LunaForge.Models.TreeNodes;
 using LunaForge.Services;
 using LunaForge.ViewModels;
@@ -199,56 +200,6 @@ public partial class DocumentFile : ObservableObject
             sta.Pop().IsExpanded = true;
         }
         node.IsSelected = true;
-    }
-
-    public bool Insert(TreeNode parent, TreeNode node, InsertMode insertMode, bool doInvoke = true)
-    {
-        try
-        {
-            if (parent == null)
-                return false;
-            if (node.Children.Count > 0)
-                node.IsExpanded = true;
-            Command cmd = null;
-            node.ParentTree = this;
-            if (parent.ParentNode == null && insertMode != InsertMode.Child)
-                return false;
-            switch (insertMode)
-            {
-                case InsertMode.Ancestor:
-                    break;
-                case InsertMode.Before:
-                    if (!parent.ParentNode.ValidateChild(node))
-                        return false;
-                    cmd = new InsertBeforeCommand(parent, node);
-                    break;
-                case InsertMode.After:
-                    if (!parent.ParentNode.ValidateChild(node))
-                        return false;
-                    cmd = new InsertAfterCommand(parent, node);
-                    break;
-                case InsertMode.Child:
-                    if (!parent.ValidateChild(node))
-                        return false;
-                    cmd = new InsertChildCommand(parent, node);
-                    break;
-            }
-            if (AddAndExecuteCommand(cmd))
-            {
-                RevealTreeNode(node);
-                if (doInvoke)
-                {
-                    //CreateInvoke(node);
-                }
-                return true;
-            }
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"Failed to insert node. Reason:\n{ex}");
-            return false;
-        }
     }
 
     private void SelectNode(TreeNode node)
