@@ -41,9 +41,26 @@ public partial class DocumentFileLFD : DocumentFile
     /// <returns>A working (hopefully) LDF file</returns>
     public static DocumentFileLFD Load(string filePath)
     {
-        DocumentFileLFD doc = new(filePath);
-        doc.TreeNodes.Clear();
+        try
+        {
+            DocumentFileLFD doc = new(filePath);
+            doc.TreeNodes.Clear();
 
+            TreeNode root = CreateNodeFromFile(filePath, doc);
+            doc.TreeNodes.Add(root);
+
+            return doc;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Couldn't create document from node tree. Reason:\n{ex}");
+            MessageBox.Show(ex.ToString());
+            return null;
+        }
+    }
+
+    public static TreeNode CreateNodeFromFile(string filePath, DocumentFileLFD target)
+    {
         TreeNode root = null;
         TreeNode prev = null;
         TreeNode tempN;
@@ -71,7 +88,7 @@ public partial class DocumentFileLFD : DocumentFile
                             prev = prev.ParentNode;
                     }
                     tempN = (TreeNode)EditorSerializer.DeserializeTreeNode(des);
-                    tempN.ParentTree = doc;
+                    tempN.ParentTree = target;
                     prev.AddChild(tempN);
                     prev = tempN;
                     prevLevel += levelgrad;
@@ -79,14 +96,13 @@ public partial class DocumentFileLFD : DocumentFile
                 else
                 {
                     root = (TreeNode)EditorSerializer.DeserializeTreeNode(des);
-                    root.ParentTree = doc;
+                    root.ParentTree = target;
                     prev = root;
                     prevLevel = 0;
                 }
             }
 
-            doc.TreeNodes.Add(root);
-            return doc;
+            return root;
         }
         catch (Exception ex)
         {

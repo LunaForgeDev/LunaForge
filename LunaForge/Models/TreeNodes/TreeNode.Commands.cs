@@ -85,4 +85,16 @@ public abstract partial class TreeNode
             MessageBox.Show($"Couldn't compile code for node. See logs.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    [RelayCommand]
+    private void SaveAsPreset()
+    {
+        PresetsService.SavePreset(this);
+    }
+
+    [RelayCommand]
+    private void InsertPreset()
+    {
+        PresetsService.InsertPreset();
+    }
 }

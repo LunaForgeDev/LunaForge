@@ -99,7 +99,8 @@
                                     <Separator/>
                                     <MenuItem Header="_View Code" Command="{Binding ViewCodeCommand}"/>
                                     <Separator/>
-                                    <MenuItem Header="_Save Preset..."/>
+                                    <MenuItem Header="_Save Preset..." Command="{Binding SaveAsPresetCommand}"/>
+                                    <MenuItem Header="_Insert Preset Here" Command="{Binding InsertPresetCommand}"/>
                                     <MenuItem Header="Hot lesbian sex" Visibility="Collapsed"/>
                                 </ContextMenu>
                             </StackPanel.ContextMenu>
@@ -214,13 +215,19 @@
                             <Image Source="pack://application:,,,/Images/open.png"/>
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="_Open Recent">
+                    <MenuItem Header="_Open Recent"
+                              ItemsSource="{Binding RecentlyOpenedFiles}">
                         <MenuItem.Icon>
                             <Image Source="pack://application:,,,/Images/open.png"/>
                         </MenuItem.Icon>
                         <MenuItem.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding}"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding FileName}"/>
+                                    <TextBlock Text="{Binding RelativePath}" 
+                                               FontSize="10"
+                                               Opacity="0.7"/>
+                                </StackPanel>
                             </DataTemplate>
                         </MenuItem.ItemTemplate>
                         <MenuItem.ItemContainerStyle>
@@ -232,6 +239,28 @@
                                         Value="{Binding}"/>
                             </Style>
                         </MenuItem.ItemContainerStyle>
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RecentlyOpenedFiles.Count}" Value="0">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
+                    </MenuItem>
+                    <MenuItem Header="_Clear Recent Files" 
+                              Command="{Binding ClearRecentFilesCommand}">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RecentlyOpenedFiles.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
                     </MenuItem>
                     <Separator/>
                     <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGestureText="Ctrl+S">
@@ -408,11 +437,6 @@
         <Border DockPanel.Dock="Top">
             <TabControl ItemsSource="{Binding ToolboxCategories}"
                         Visibility="{Binding CurrentFileIsLFD, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TabControl.Resources>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Margin" Value="0"/>
-                    </Style>
-                </TabControl.Resources>
                 <TabControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding CategoryName}"/>
@@ -429,33 +453,14 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <ContentControl>
-                                            <ContentControl.Style>
-                                                <Style TargetType="ContentControl">
-                                                    <Setter Property="Content">
-                                                        <Setter.Value>
-                                                            <Button Command="{Binding DataContext.InsertNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                    CommandParameter="{Binding}"
-                                                                    ToolTip="{Binding DisplayName}"
-                                                                    Padding="4">
-                                                                <Image Source="{Binding IconPath}"
-                                                                       Width="24" Height="24"
-                                                                       Stretch="Fill"/>
-                                                            </Button>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSeparator}" Value="True">
-                                                            <Setter Property="Content">
-                                                                <Setter.Value>
-                                                                    <Separator/>
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ContentControl.Style>
-                                        </ContentControl>
+                                        <Button Command="{Binding DataContext.InsertNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="{Binding DisplayName}"
+                                                Padding="4">
+                                            <Image Source="{Binding IconPath}"
+                                                   Width="24" Height="24"
+                                                   Stretch="Fill"/>
+                                        </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
