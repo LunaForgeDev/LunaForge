@@ -21,6 +21,8 @@ public class PluginManager : IDisposable
     private readonly Dictionary<string, PluginLoadContext> _loadedPlugins = [];
     private readonly Dictionary<string, INodeLibrary> _libraries = [];
     private readonly Dictionary<string, string> _libraryToPluginMap = [];
+    private readonly Dictionary<string, ICompilationTarget> _compilationTargets = [];
+    private readonly Dictionary<string, string> _targetToPluginMap = [];
     private FileSystemWatcher? _watcher;
     private bool _disposed = false;
     private bool _hotReloadEnabled = false;
@@ -33,7 +35,9 @@ public class PluginManager : IDisposable
     public event Action<string, Exception>? OnLibraryLoadError;
 
     public IReadOnlyDictionary<string, INodeLibrary> LoadedLibraries => _libraries;
+    public IReadOnlyDictionary<string, ICompilationTarget> CompilationTargets => _compilationTargets;
     public bool IsHotReloadEnabled => _hotReloadEnabled;
+    public static string PluginsDirectory => PluginPath;
 
     public PluginManager()
     {
@@ -90,10 +94,22 @@ public class PluginManager : IDisposable
 
         var enabledPlugins = GetEnabledPlugins();
         
+        // If no plugins are explicitly configured, don't load any external plugins by default
         if (enabledPlugins.Count == 0)
-            return true;
+            return false;
 
         return enabledPlugins.Contains(libraryName);
+    }
+
+    private bool IsPluginEnabled(string pluginKey)
+    {
+        var enabledPlugins = GetEnabledPlugins();
+        
+        // If no plugins are explicitly configured, don't load any external plugins by default
+        if (enabledPlugins.Count == 0)
+            return false;
+
+        return enabledPlugins.Any(ep => ep.Contains(pluginKey, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task LoadAllPlugins()
@@ -167,15 +183,23 @@ public class PluginManager : IDisposable
                     && !t.IsAbstract)
                 .ToList();
 
-            if (libraryTypes.Count == 0)
+            var compilationTargetTypes = assembly.GetTypes()
+                .Where(t => typeof(ICompilationTarget).IsAssignableFrom(t)
+                    && !t.IsInterface
+                    && !t.IsAbstract)
+                .ToList();
+
+            if (libraryTypes.Count == 0 && compilationTargetTypes.Count == 0)
             {
-                Logger.Warning($"No INodeLibrary implementations found in {pluginKey}");
+                Logger.Warning($"No INodeLibrary or ICompilationTarget implementations found in {pluginKey}");
                 loader.Dispose();
                 return;
             }
 
             var context = new PluginLoadContext(dllPath, loader);
             var loadedLibraries = new List<string>();
+            var loadedTargets = new List<string>();
+            var pluginIsEnabled = false;
 
             foreach (var libraryType in libraryTypes)
             {
@@ -194,6 +218,7 @@ public class PluginManager : IDisposable
                         continue;
                     }
 
+                    pluginIsEnabled = true;
                     library.Initialize();
 
                     _libraries[library.LibraryName] = library;
@@ -210,14 +235,47 @@ public class PluginManager : IDisposable
                 }
             }
 
-            if (loadedLibraries.Count > 0)
+            // Only load compilation targets if the plugin has at least one enabled library
+            if (pluginIsEnabled)
+            {
+                foreach (var targetType in compilationTargetTypes)
+                {
+                    try
+                    {
+                        var target = (ICompilationTarget?)Activator.CreateInstance(targetType);
+                        if (target == null)
+                        {
+                            Logger.Error($"Failed to instantiate compilation target {targetType.Name}: Activator returned null");
+                            continue;
+                        }
+
+                        _compilationTargets[target.TargetName] = target;
+                        _targetToPluginMap[target.TargetName] = pluginKey;
+                        loadedTargets.Add(target.TargetName);
+
+                        Logger.Information($"Loaded compilation target: {target.TargetName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Failed to instantiate compilation target {targetType.Name}: {ex.Message}");
+                        OnLibraryLoadError?.Invoke(pluginKey, ex);
+                    }
+                }
+            }
+            else
+            {
+                Logger.Information($"Plugin {pluginKey} is disabled, skipping compilation targets");
+            }
+
+            if (loadedLibraries.Count > 0 || loadedTargets.Count > 0)
             {
                 context.LibraryNames.AddRange(loadedLibraries);
+                context.CompilationTargetNames.AddRange(loadedTargets);
                 _loadedPlugins[pluginKey] = context;
             }
             else
             {
-                Logger.Warning($"No libraries loaded from {pluginKey}, disposing loader");
+                Logger.Warning($"No libraries or targets loaded from {pluginKey}, disposing loader");
                 context.Dispose();
             }
 
@@ -268,6 +326,16 @@ public class PluginManager : IDisposable
                 }
             }
 
+            // Unload compilation targets
+            foreach (var targetName in context.CompilationTargetNames.ToList())
+            {
+                if (_compilationTargets.Remove(targetName))
+                {
+                    _targetToPluginMap.Remove(targetName);
+                    Logger.Information($"Unloaded compilation target: {targetName}");
+                }
+            }
+
             context.Dispose();
             _loadedPlugins.Remove(pluginKey);
             Logger.Information($"Unloaded plugin: {pluginKey}");
@@ -286,7 +354,7 @@ public class PluginManager : IDisposable
 
         var dllFiles = Directory.Exists(PluginPath) 
             ? Directory.GetFiles(PluginPath, "*.dll", SearchOption.TopDirectoryOnly)
-            : Array.Empty<string>();
+            : [];
 
         var pluginKeys = _loadedPlugins.Keys.ToList();
         foreach (var pluginKey in pluginKeys)
@@ -380,6 +448,9 @@ public class PluginManager : IDisposable
     public INodeLibrary? GetLibrary(string libraryName) =>
         _libraries.TryGetValue(libraryName, out var lib) ? lib : null;
 
+    public ICompilationTarget? GetCompilationTarget(string targetName) =>
+        _compilationTargets.TryGetValue(targetName, out var target) ? target : null;
+
     public TreeNode? CreateNode(Type nodeType)
     {
         try
@@ -462,6 +533,9 @@ public class PluginManager : IDisposable
         }
     }
 
+    public IEnumerable<string> GetAvailableCompilationTargets() =>
+        _compilationTargets.Keys;
+
     public async Task ReloadAllPlugins()
     {
         await ReloadPluginsWithSettings();
@@ -518,11 +592,161 @@ public class PluginManager : IDisposable
         _libraries.Clear();
         _loadedPlugins.Clear();
         _libraryToPluginMap.Clear();
+        _compilationTargets.Clear();
+        _targetToPluginMap.Clear();
         _reloadLock.Dispose();
         _disposed = true;
 
         Logger.Information("PluginManager disposed");
     }
+
+    public List<DiscoveredPlugin> DiscoverAllPlugins()
+    {
+        var discoveredPlugins = new List<DiscoveredPlugin>();
+
+        if (_builtInLibrary != null)
+        {
+            discoveredPlugins.Add(new DiscoveredPlugin
+            {
+                LibraryName = _builtInLibrary.LibraryName,
+                DisplayName = _builtInLibrary.DisplayName,
+                Version = _builtInLibrary.Version,
+                Description = _builtInLibrary.Description,
+                IsBuiltIn = true,
+                IsLoaded = true,
+                CategoryCount = _builtInLibrary.Categories.Count
+            });
+        }
+
+        if (!Directory.Exists(PluginPath))
+            return discoveredPlugins;
+
+        var dllFiles = Directory.GetFiles(PluginPath, "*.dll", SearchOption.TopDirectoryOnly);
+        var enabledPlugins = GetEnabledPlugins();
+
+        foreach (var dllPath in dllFiles)
+        {
+            try
+            {
+                var pluginKey = Path.GetFileNameWithoutExtension(dllPath);
+                
+                // Check if plugin is already loaded
+                if (_loadedPlugins.TryGetValue(pluginKey, out var context))
+                {
+                    // Plugin is loaded, get info from loaded libraries
+                    foreach (var libraryName in context.LibraryNames)
+                    {
+                        if (_libraries.TryGetValue(libraryName, out var library))
+                        {
+                            discoveredPlugins.Add(new DiscoveredPlugin
+                            {
+                                LibraryName = library.LibraryName,
+                                DisplayName = library.DisplayName,
+                                Version = library.Version,
+                                Description = library.Description,
+                                IsBuiltIn = false,
+                                IsLoaded = true,
+                                CategoryCount = library.Categories.Count,
+                                DllPath = dllPath
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    // Plugin is not loaded, try to get info by temporarily loading the assembly
+                    var pluginInfo = GetPluginInfoWithoutLoading(dllPath);
+                    foreach (var info in pluginInfo)
+                    {
+                        info.DllPath = dllPath;
+                        discoveredPlugins.Add(info);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"Failed to discover plugin {dllPath}: {ex.Message}");
+            }
+        }
+
+        return discoveredPlugins;
+    }
+
+    private List<DiscoveredPlugin> GetPluginInfoWithoutLoading(string dllPath)
+    {
+        var plugins = new List<DiscoveredPlugin>();
+        PluginLoader? tempLoader = null;
+
+        try
+        {
+            tempLoader = PluginLoader.CreateFromAssemblyFile(
+                dllPath,
+                sharedTypes: Type.EmptyTypes,
+                config =>
+                {
+                    config.IsUnloadable = true;
+                    config.PreferSharedTypes = true;
+                    config.LoadInMemory = true;
+                    config.DefaultContext = System.Runtime.Loader.AssemblyLoadContext.Default;
+                }
+            );
+
+            var assembly = tempLoader.LoadDefaultAssembly();
+
+            var libraryTypes = assembly.GetTypes()
+                .Where(t => typeof(INodeLibrary).IsAssignableFrom(t)
+                    && !t.IsInterface
+                    && !t.IsAbstract)
+                .ToList();
+
+            foreach (var libraryType in libraryTypes)
+            {
+                try
+                {
+                    var library = (INodeLibrary?)Activator.CreateInstance(libraryType);
+                    if (library == null)
+                        continue;
+
+                    plugins.Add(new DiscoveredPlugin
+                    {
+                        LibraryName = library.LibraryName,
+                        DisplayName = library.DisplayName,
+                        Version = library.Version,
+                        Description = library.Description,
+                        IsBuiltIn = false,
+                        IsLoaded = false,
+                        CategoryCount = 0 // Can't get category count without initializing
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Failed to instantiate {libraryType.Name} for discovery: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"Failed to get plugin info from {dllPath}: {ex.Message}");
+        }
+        finally
+        {
+            tempLoader?.Dispose();
+        }
+
+        return plugins;
+    }
+}
+
+public class DiscoveredPlugin
+{
+    public string LibraryName { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool IsBuiltIn { get; set; }
+    public bool IsLoaded { get; set; }
+    public int CategoryCount { get; set; }
+    public string? DllPath { get; set; }
 }
 
 public class PluginLoadContext(string pluginPath, PluginLoader? loader = null) : IDisposable
@@ -531,6 +755,7 @@ public class PluginLoadContext(string pluginPath, PluginLoader? loader = null) :
 
     public string PluginPath { get; } = pluginPath;
     public List<string> LibraryNames { get; } = [];
+    public List<string> CompilationTargetNames { get; } = [];
 
     public void Dispose()
     {

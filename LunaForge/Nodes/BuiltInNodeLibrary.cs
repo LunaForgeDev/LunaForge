@@ -2,7 +2,6 @@ using LunaForge.Nodes.General;
 using LunaForge.Plugins;
 using LunaForge.Services;
 using Serilog;
-using System.Windows.Forms;
 
 namespace LunaForge.Nodes;
 
@@ -19,17 +18,21 @@ public class BuiltInNodeLibrary : NodeLibraryBase
     public override void Initialize()
     {
         base.Initialize();
-        
-        foreach (var category in Categories)
-        {
-            Logger.Information($"  - Category: {category.Name} with {category.Nodes.Count} nodes");
-        }
     }
 
     protected override void RegisterCategories()
     {
+        #region General
         var general = CreateCategory("General");
-        general.AddNode<RootFolder>("Root Folder");
+        general.AddNode<Folder>("Folder");
+        general.AddNode<FolderRed>("Red Folder");
+        general.AddNode<FolderGreen>("Green Folder");
+        general.AddNode<FolderBlue>("Blue Folder");
+        general.AddNode<FolderYellow>("Yellow Folder");
+        general.AddSeparator();
+        general.AddNode<Code>("Code");
+
+        #endregion
     }
 
     public override void Shutdown()
