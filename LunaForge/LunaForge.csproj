@@ -287,9 +287,4 @@
     </Resource>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Converters\" />
-    <Folder Include="NewFolder\" />
-  </ItemGroup>
-
 </Project>
