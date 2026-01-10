@@ -19,7 +19,7 @@ namespace LunaForge.ViewModels;
 public partial class CreateProjectViewModel : ObservableObject
 {
     private static ILogger Logger = CoreLogger.Create("Create Project");
-    private readonly OnlineTemplateService onlineTemplateService = new();
+    private readonly OnlineResourceService onlineResourceService = new();
 
     [ObservableProperty]
     private int currentPage = 0; // 0: Template; 1: Details
@@ -72,7 +72,7 @@ public partial class CreateProjectViewModel : ObservableObject
                 Templates.Add(template);
             }
 
-            var onlineTemplates = await onlineTemplateService.GetAvailableProjectTemplatesAsync();
+            var onlineTemplates = await onlineResourceService.GetAvailableProjectTemplatesAsync();
             foreach (var onlineTemplate in onlineTemplates)
             {
                 Templates.Add(new ProjectTemplateViewModel
@@ -214,7 +214,7 @@ public partial class CreateProjectViewModel : ObservableObject
 
                 Logger.Information($"Downloading template: {SelectedTemplate.Name}");
                 MessageBox.Show($"Downloading Remote Template", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                zipPath = await onlineTemplateService.DownloadTemplateAsync(
+                zipPath = await onlineResourceService.DownloadTemplateAsync(
                     SelectedTemplate.OnlineTemplate.DownloadUrl,
                     localPath);
 

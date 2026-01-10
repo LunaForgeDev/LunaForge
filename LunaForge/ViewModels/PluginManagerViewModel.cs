@@ -7,6 +7,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,15 +19,25 @@ public partial class PluginManagerViewModel : ObservableObject
     
     private readonly PluginManager _pluginManager;
     private readonly PluginManagerWindow _owner;
+    private readonly OnlineResourceService _onlineResourceService = new();
 
     [ObservableProperty]
     private ObservableCollection<PluginListItem> plugins = [];
 
     [ObservableProperty]
+    private ObservableCollection<OnlinePluginItem> onlinePlugins = [];
+
+    [ObservableProperty]
     private PluginListItem? selectedPlugin;
 
     [ObservableProperty]
+    private OnlinePluginItem? selectedOnlinePlugin;
+
+    [ObservableProperty]
     private bool isReloading = false;
+
+    [ObservableProperty]
+    private bool isLoadingOnlinePlugins = false;
 
     public PluginManagerViewModel() { }
 
@@ -35,6 +46,7 @@ public partial class PluginManagerViewModel : ObservableObject
         _owner = owner;
         _pluginManager = pluginManager;
         LoadPlugins();
+        _ = LoadOnlinePluginsAsync();
     }
 
     private void LoadPlugins()
@@ -42,25 +54,66 @@ public partial class PluginManagerViewModel : ObservableObject
         Plugins.Clear();
 
         var enabledPlugins = GetEnabledPlugins();
+        var discoveredPlugins = _pluginManager.DiscoverAllPlugins();
 
-        foreach (var (libraryName, library) in _pluginManager.LoadedLibraries)
+        foreach (var plugin in discoveredPlugins)
         {
-            var isBuiltIn = libraryName == "LunaForge.BuiltIn";
-            var isEnabled = isBuiltIn || enabledPlugins.Contains(libraryName);
+            var isEnabled = plugin.IsBuiltIn || enabledPlugins.Contains(plugin.LibraryName);
 
             Plugins.Add(new PluginListItem
             {
-                LibraryName = libraryName,
-                DisplayName = library.DisplayName,
-                Version = library.Version,
-                Description = library.Description,
+                LibraryName = plugin.LibraryName,
+                DisplayName = plugin.DisplayName,
+                Version = plugin.Version,
+                Description = plugin.Description,
+                IsNotDownloaded = false,
                 IsEnabled = isEnabled,
-                IsBuiltIn = isBuiltIn,
-                CategoryCount = library.Categories.Count
+                IsBuiltIn = plugin.IsBuiltIn,
+                IsLoaded = plugin.IsLoaded,
+                CategoryCount = plugin.CategoryCount
             });
         }
 
         Logger.Information($"Loaded {Plugins.Count} plugins into manager");
+    }
+
+    private async Task LoadOnlinePluginsAsync()
+    {
+        IsLoadingOnlinePlugins = true;
+        OnlinePlugins.Clear();
+
+        try
+        {
+            var onlinePlugins = await _onlineResourceService.GetAvailablePluginsAsync();
+            var installedLibraryNames = Plugins.Select(p => p.LibraryName).ToHashSet();
+
+            foreach (var plugin in onlinePlugins)
+            {
+                var isInstalled = installedLibraryNames.Contains(plugin.LibraryName);
+                
+                OnlinePlugins.Add(new OnlinePluginItem
+                {
+                    LibraryName = plugin.LibraryName,
+                    DisplayName = plugin.Name,
+                    Version = plugin.Version,
+                    Description = plugin.Description,
+                    Author = plugin.Author,
+                    Size = plugin.Size,
+                    IsInstalled = isInstalled,
+                    OnlinePlugin = plugin
+                });
+            }
+
+            Logger.Information($"Loaded {OnlinePlugins.Count} online plugins");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to load online plugins: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingOnlinePlugins = false;
+        }
     }
 
     private HashSet<string> GetEnabledPlugins()
@@ -125,6 +178,65 @@ public partial class PluginManagerViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task DownloadPlugin(OnlinePluginItem? pluginItem)
+    {
+        if (pluginItem == null || pluginItem.OnlinePlugin == null)
+            return;
+
+        if (pluginItem.IsInstalled)
+        {
+            Logger.Information($"Plugin {pluginItem.DisplayName} is already installed");
+            return;
+        }
+
+        try
+        {
+            pluginItem.IsDownloading = true;
+            var plugin = pluginItem.OnlinePlugin;
+
+            Logger.Information($"Downloading plugin: {plugin.Name}");
+
+            string fileName = Path.GetFileName(new Uri(plugin.DownloadUrl).LocalPath);
+            if (string.IsNullOrEmpty(fileName) || !fileName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                fileName = $"{plugin.LibraryName}.dll";
+            }
+
+            string destinationPath = Path.Combine(PluginManager.PluginsDirectory, fileName);
+
+            var progress = new Progress<double>(p => pluginItem.DownloadProgress = p);
+            
+            string? downloadedPath = await _onlineResourceService.DownloadPluginAsync(
+                plugin.DownloadUrl,
+                destinationPath,
+                progress);
+
+            if (downloadedPath != null)
+            {
+                Logger.Information($"Plugin {plugin.Name} downloaded successfully");
+                
+                // Reload plugins to show the newly downloaded plugin
+                await _pluginManager.LoadPlugin(downloadedPath);
+                LoadPlugins();
+                await LoadOnlinePluginsAsync();
+            }
+            else
+            {
+                Logger.Error($"Failed to download plugin {plugin.Name}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Error downloading plugin: {ex.Message}");
+        }
+        finally
+        {
+            pluginItem.IsDownloading = false;
+            pluginItem.DownloadProgress = 0;
+        }
+    }
+
+    [RelayCommand]
     private async Task ReloadPlugins()
     {
         try
@@ -145,6 +257,12 @@ public partial class PluginManagerViewModel : ObservableObject
         {
             IsReloading = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task RefreshOnlinePlugins()
+    {
+        await LoadOnlinePluginsAsync();
     }
 
     [RelayCommand]
@@ -169,18 +287,68 @@ public partial class PluginListItem : ObservableObject
     private string description = string.Empty;
 
     [ObservableProperty]
+    private bool isNotDownloaded = true;
+
+    [ObservableProperty]
     private bool isEnabled;
 
     [ObservableProperty]
     private bool isBuiltIn;
 
     [ObservableProperty]
+    private bool isLoaded;
+
+    [ObservableProperty]
     private int categoryCount;
 
-    public string StatusText => IsBuiltIn ? "Built-in" : (IsEnabled ? "Enabled" : "Disabled");
+    public string StatusText => IsBuiltIn ? "Built-in" : (IsLoaded ? "Loaded" : (IsEnabled ? "Enabled" : "Disabled"));
     
     partial void OnIsEnabledChanged(bool value)
     {
         OnPropertyChanged(nameof(StatusText));
     }
+
+    partial void OnIsLoadedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(StatusText));
+    }
+}
+
+public partial class OnlinePluginItem : ObservableObject
+{
+    [ObservableProperty]
+    private string libraryName = string.Empty;
+
+    [ObservableProperty]
+    private string displayName = string.Empty;
+
+    [ObservableProperty]
+    private string version = string.Empty;
+
+    [ObservableProperty]
+    private string description = string.Empty;
+
+    [ObservableProperty]
+    private string? author;
+
+    [ObservableProperty]
+    private long size;
+
+    [ObservableProperty]
+    private bool isInstalled;
+
+    [ObservableProperty]
+    private bool isDownloading;
+
+    [ObservableProperty]
+    private double downloadProgress;
+
+    [ObservableProperty]
+    private OnlinePlugin? onlinePlugin;
+
+    public string SizeText => Size > 1024 * 1024 
+        ? $"{Size / (1024.0 * 1024.0):F2} MB" 
+        : $"{Size / 1024.0:F2} KB";
+
+    public string StatusText => IsInstalled ? "Installed" : "Available";
 }

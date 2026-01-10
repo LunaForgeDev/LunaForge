@@ -6,6 +6,7 @@
         xmlns:vm="clr-namespace:LunaForge.ViewModels"
         xmlns:tools="clr-namespace:LunaForge.Tools"
         mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:PluginManagerViewModel, IsDesignTimeCreatable=True}"
         Title="Plugin Manager"
         Height="500"
         Width="700"
@@ -41,47 +42,117 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <DockPanel Grid.Column="0">
-                <TextBlock DockPanel.Dock="Top" 
-                           Text="Installed Plugins" 
-                           FontWeight="Bold" 
-                           Margin="0,0,0,5"/>
-                <DataGrid ItemsSource="{Binding Plugins}"
-                          SelectedItem="{Binding SelectedPlugin, Mode=TwoWay}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          SelectionMode="Single"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          CanUserResizeRows="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Name" 
-                                            Binding="{Binding DisplayName}" 
-                                            Width="*"/>
-                        <DataGridTextColumn Header="Version" 
-                                            Binding="{Binding Version}" 
-                                            Width="80"/>
-                        <DataGridTextColumn Header="Status" 
-                                            Binding="{Binding StatusText}" 
-                                            Width="80"/>
-                        <DataGridTemplateColumn Header="Enabled" Width="60">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsEnabled, Mode=OneWay}"
-                                              IsEnabled="{Binding IsBuiltIn, Converter={StaticResource InvertedBoolConverter}}"
-                                              Command="{Binding DataContext.TogglePluginCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                              CommandParameter="{Binding}"
-                                              HorizontalAlignment="Center"/>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0">
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Installed Plugins"
+                               FontWeight="Bold"
+                               Margin="0,0,0,5"/>
+                    <DataGrid ItemsSource="{Binding Plugins}"
+                              SelectedItem="{Binding SelectedPlugin, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name"
+                                                Binding="{Binding DisplayName}"
+                                                Width="*"/>
+                            <DataGridTextColumn Header="Version"
+                                                Binding="{Binding Version}"
+                                                Width="80"/>
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding StatusText}"
+                                                Width="80"/>
+                            <DataGridTemplateColumn Header="Enabled" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                  IsEnabled="{Binding IsBuiltIn, Converter={StaticResource InvertedBoolConverter}}"
+                                                  Command="{Binding DataContext.TogglePluginCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding}"
+                                                  HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+
+                <GridSplitter Grid.Row="1"
+                              VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              ShowsPreview="True"
+                              Opacity="0"/>
+
+                <DockPanel Grid.Row="2">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,5">
+                        <Button DockPanel.Dock="Right"
+                                Content="Refresh"
+                                Command="{Binding RefreshOnlinePluginsCommand}"
+                                Padding="5,2"
+                                Margin="5,0,0,0"/>
+                        <TextBlock Text="Plugin Store"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DataGrid ItemsSource="{Binding OnlinePlugins}"
+                              SelectedItem="{Binding SelectedOnlinePlugin, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name"
+                                                Binding="{Binding DisplayName}"
+                                                Width="*"/>
+                            <DataGridTextColumn Header="Version"
+                                                Binding="{Binding Version}"
+                                                Width="60"/>
+                            <DataGridTextColumn Header="Size"
+                                                Binding="{Binding SizeText}"
+                                                Width="70"/>
+                            <DataGridTemplateColumn Header="" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Button Content="Download"
+                                                    Command="{Binding DataContext.DownloadPluginCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    Padding="5,2"
+                                                    Visibility="{Binding IsInstalled, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                            <TextBlock Text="Installed"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="Gray"
+                                                       FontStyle="Italic"
+                                                       Visibility="{Binding IsInstalled, Converter={StaticResource BoolToVisibility}}"/>
+                                            <ProgressBar Value="{Binding DownloadProgress}"
+                                                         Height="4"
+                                                         VerticalAlignment="Bottom"
+                                                         Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisibility}}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Grid>
 
             <GridSplitter Grid.Column="1" 
-                          HorizontalAlignment="Stretch" 
-                          ShowsPreview="True" DragDelta="GridSplitter_DragDelta"
+                          VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                          ShowsPreview="True"
                           Opacity="0"/>
 
             <DockPanel Grid.Column="2">
@@ -89,10 +160,11 @@
                            Text="Plugin Details" 
                            FontWeight="Bold" 
                            Margin="0,0,0,10"/>
-                <StackPanel DataContext="{Binding SelectedPlugin}">
+
+                <StackPanel DataContext="{Binding SelectedPlugin}"
+                            Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}">
                     <GroupBox Header="Information" 
-                              Margin="0,0,0,10"
-                              Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}">
+                              Margin="0,0,0,10">
                         <StackPanel Margin="5">
                             <Label Content="Name:" FontWeight="Bold"/>
                             <TextBlock Text="{Binding DisplayName}" 
@@ -129,14 +201,67 @@
                                    TextWrapping="Wrap" 
                                    Margin="5"/>
                     </GroupBox>
-
-                    <TextBlock Text="Select a plugin to view details" 
-                               Foreground="Gray" 
-                               TextAlignment="Center"
-                               VerticalAlignment="Center"
-                               Margin="0,50,0,0"
-                               Visibility="{Binding Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                 </StackPanel>
+
+                <StackPanel DataContext="{Binding SelectedOnlinePlugin}"
+                            Visibility="{Binding Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}">
+                    <GroupBox Header="Information" 
+                              Margin="0,0,0,10">
+                        <StackPanel Margin="5">
+                            <Label Content="Name:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding DisplayName}" 
+                                       Margin="5,0,0,10" 
+                                       TextWrapping="Wrap"/>
+
+                            <Label Content="Library Name:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding LibraryName}" 
+                                       Margin="5,0,0,10" 
+                                       TextWrapping="Wrap"/>
+
+                            <Label Content="Version:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Version}" 
+                                       Margin="5,0,0,10"/>
+
+                            <Label Content="Author:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Author}" 
+                                       Margin="5,0,0,10"/>
+
+                            <Label Content="Size:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding SizeText}" 
+                                       Margin="5,0,0,10"/>
+
+                            <Label Content="Status:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding StatusText}" 
+                                       Margin="5,0,0,10"/>
+
+                            <Label Content="Description:" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Description}" 
+                                       TextWrapping="Wrap" 
+                                       Margin="5,0,0,10"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+
+                <TextBlock Text="Select a plugin to view details" 
+                           Foreground="Gray" 
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="0,50,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding SelectedPlugin}" Value="{x:Null}"/>
+                                        <Condition Binding="{Binding SelectedOnlinePlugin}" Value="{x:Null}"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </DockPanel>
         </Grid>
     </DockPanel>
