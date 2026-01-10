@@ -1,4 +1,5 @@
-﻿using LunaForge.Models.Documents;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using LunaForge.Models.Documents;
 using LunaForge.Plugins;
 using LunaForge.Services;
 using LunaForge.ViewModels;
@@ -32,13 +33,19 @@ public class Project : IDisposable
 
     public PluginManager? PluginManager { get; private set; }
     public ToolboxService? ToolboxService { get; private set; }
+    public RecentFilesService? RecentFilesService { get; private set; }
 
     public ConfigSystem ProjectConfig = new();
 
+    public ProjectCompilerService Compiler = null!;
+
     public Project()
-    { }
+    {
+        Compiler = new(this);
+    }
 
     public Project(string folder)
+        : this()
     {
         ProjectRoot = folder;
     }
@@ -93,6 +100,8 @@ public class Project : IDisposable
             ToolboxService = new ToolboxService(PluginManager);
             ToolboxService.RebuildToolbox();
 
+            RecentFilesService = new RecentFilesService();
+
             SymbolIndex = new(this);
             SymbolIndex.LoadIndex();
 
@@ -137,6 +146,7 @@ public class Project : IDisposable
         if (existingFile != null)
         {
             Logger.Information($"File already opened: {filePath}");
+            RecentFilesService?.AddRecentFile(filePath);
             return existingFile;
         }
 
@@ -157,6 +167,7 @@ public class Project : IDisposable
             {
                 Files.Add(documentFile);
                 Logger.Information($"Opened file: {filePath}");
+                RecentFilesService?.AddRecentFile(filePath);
             }
         }
         catch (Exception ex)
@@ -175,6 +186,7 @@ public class Project : IDisposable
         try
         {
             SaveOpenedFiles();
+            RecentFilesService?.SaveRecentFiles();
             ProjectConfig.Save(ProjectFile);
             return true;
         }
@@ -240,7 +252,8 @@ public class Project : IDisposable
             foreach (var fileName in fileNames)
             {
                 var file = Path.Combine(ProjectRoot, fileName);
-                OpenFile(file);
+                // Proxy to MainWindowModel because it handles opened files a different way (for recent opens)
+                MainWindowModel.Instance.OpenFile(file);
             }
 
             Logger.Information($"Loaded {fileNames.Length} opened files");
