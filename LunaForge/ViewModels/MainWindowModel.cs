@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 
@@ -51,6 +52,9 @@ public partial class MainWindowModel : ObservableObject
 
     [ObservableProperty]
     private InsertMode currentInsertMode = InsertMode.Child;
+
+    [ObservableProperty]
+    private ObservableCollection<RecentFileItem> recentlyOpenedFiles = [];
 
     public bool CurrentFileIsLFD => SelectedFile != null && SelectedFile.FileExtension == ".lfd";
 
@@ -125,8 +129,32 @@ public partial class MainWindowModel : ObservableObject
 
     private void LoadOpenedFiles()
     {
-        
+        LoadRecentFiles();
+    }
 
+    private void LoadRecentFiles()
+    {
+        if (Project?.RecentFilesService == null)
+            return;
+
+        try
+        {
+            var recentFiles = Project.RecentFilesService.GetRecentFiles();
+            RecentlyOpenedFiles.Clear();
+
+            foreach (var file in recentFiles)
+            {
+                string fullPath = Path.Combine(Project.ProjectRoot, file);
+                if (File.Exists(fullPath))
+                    RecentlyOpenedFiles.Add(new RecentFileItem(file, Project.ProjectRoot));
+            }
+
+            Logger.Information($"Loaded {RecentlyOpenedFiles.Count} recent files");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to load recent files. Reason:\n{ex}");
+        }
     }
 
     private void StartLoggingUpdater()
@@ -180,8 +208,35 @@ public partial class MainWindowModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenFile(string filePath)
+    public void OpenFile(object parameter)
     {
+        string filePath = parameter switch
+        {
+            string str => str,
+            RecentFileItem item => item.RelativePath,
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            OpenFileDialog dialog = new()
+            {
+                Title = "Open File",
+                InitialDirectory = Project?.ProjectRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Filter = "All Supported Files (*.lua;*.lfd;*.lfs)|*.lua;*.lfd;*.lfs|Lua Scripts (*.lua)|*.lua|LFD Files (*.lfd)|*.lfd|LFS Files (*.lfs)|*.lfs|All Files (*.*)|*.*"
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            filePath = dialog.FileName;
+        }
+        else
+        {
+            if (!Path.IsPathRooted(filePath))
+                filePath = Path.Combine(Project.ProjectRoot, filePath);
+        }
+
         if (Path.GetExtension(filePath).Equals(".lfp", StringComparison.CurrentCultureIgnoreCase))
         {
             Settings settings = new();
@@ -189,10 +244,11 @@ public partial class MainWindowModel : ObservableObject
             return;
         }
 
-        var openedFile = Project.OpenFile(filePath);
+        var openedFile = Project!.OpenFile(filePath);
         if (openedFile != null)
         {
             SelectedFile = openedFile;
+            LoadRecentFiles();
         }
     }
 
@@ -400,6 +456,33 @@ public partial class MainWindowModel : ObservableObject
         }
         if (SelectedFile is DocumentFileLFD ldfFile)
             ldfFile.Insert(parent, node, CurrentInsertMode);
+    }
+
+    [RelayCommand]
+    private void ClearRecentFiles()
+    {
+        if (Project?.RecentFilesService == null)
+            return;
+
+        try
+        {
+            Project.RecentFilesService.ClearRecentFiles();
+            RecentlyOpenedFiles.Clear();
+            Logger.Information("Recent files cleared");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to clear recent files. Reason:\n{ex}");
+        }
+    }
+
+    [RelayCommand]
+    public void CompileProject()
+    {
+        Task.Run(async () =>
+        {
+            await Project.Compiler.Compile();
+        });
     }
 
     #endregion

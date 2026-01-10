@@ -126,6 +126,9 @@ public partial class FileViewerModel : ObservableObject
         if (item == null || item.IsFolder)
             return;
 
+        MainWindowModel.Instance.OpenFile(item.FullPath);
+
+        /*
         try
         {
             if (Path.GetExtension(item.FullPath).Equals(".lfp", StringComparison.CurrentCultureIgnoreCase))
@@ -146,5 +149,6 @@ public partial class FileViewerModel : ObservableObject
             Logger.Error($"Error opening file '{item.FullPath}'. Reason:\n{ex}");
             System.Windows.MessageBox.Show($"Error opening file: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+        */
     }
 }

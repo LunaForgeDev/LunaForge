@@ -382,7 +382,7 @@
                     </Button>
                     <Separator/>
 
-                    <Button ToolTip="Pack Project">
+                    <Button Command="{Binding CompileProjectCommand}" ToolTip="Compile Project (F4)">
                         <Image Source="/Images/pack.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
                     <Button ToolTip="Run Project (F5)">
@@ -573,7 +573,14 @@
                     <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Opacity="0.1"/>
                     <TabControl Grid.Column="2">
                         <TabItem Header="Console">
-
+                            <DockPanel>
+                                <TextBox DockPanel.Dock="Bottom" Height="20"
+                                         IsReadOnly="False"/>
+                                <TextBox VerticalScrollBarVisibility="Visible"
+                                         Text="{Binding Console}" IsReadOnly="True"
+                                         tools:TextBoxScrollBehavior.AutoScrollToEnd="True"
+                                         DockPanel.Dock="Top"/>
+                            </DockPanel>
                         </TabItem>
                         <TabItem Header="LuaSTG Log">
                             <TextBox VerticalScrollBarVisibility="Visible"
