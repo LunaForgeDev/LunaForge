@@ -12,7 +12,7 @@ namespace LunaForge.Models;
 public class EditorConfig : ConfigSystem
 {
     private const string configFile = "config.toml";
-    private static readonly string configPath = Path.Combine(GetConfigPath(), configFile);
+    private static readonly new string configPath = Path.Combine(GetConfigPath(), configFile);
     public static readonly string BasePath = GetConfigPath();
 
     public static EditorConfig Default { get; } = Load<EditorConfig>(configPath);

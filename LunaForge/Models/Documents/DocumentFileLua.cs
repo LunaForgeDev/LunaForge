@@ -42,12 +42,12 @@ public partial class DocumentFileLua : DocumentFile
         }
     }
 
-    public bool Save()
+    public new bool Save()
     {
         return Save(FilePath);
     }
 
-    public bool Save(string filePath)
+    public override bool Save(string filePath)
     {
         try
         {
