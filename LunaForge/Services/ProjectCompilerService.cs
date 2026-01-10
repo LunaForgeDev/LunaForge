@@ -33,21 +33,32 @@ public class ProjectCompilerService
         return await Compile(null);
     }
 
-    public async Task<bool> Compile(ICompilationTarget? target)
+    public async Task<bool> Compile(ICompilationTarget? target = null)
     {
+        Logger.Information($"============================ Starting Compilation");
+        if (target == null)
+        {
+            string targetName = proj.ProjectConfig.Get<string>("CompilationTarget").Value;
+            target = proj.PluginManager?.GetCompilationTarget(targetName);
+            Logger.Debug($"CompilationTarget found.");
+        }
         if (target == null)
         {
             Logger.Error($"Cannot compile the project '{proj.Name}'. No target selected.");
             MessageBox.Show("No compiliation target selected. See your project settings.", "Compilation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
+        Logger.Debug($"Compilation target: '{target.TargetName}' building in '{target.BuildDirectory}'");
 
         // Step 0: Commit changes. Test for editor errors, and do other shit.
+        outputFinalPath = Path.Combine(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value, target.BuildDirectory);
+        Logger.Information($"Build path found: '{outputFinalPath}'");
 
         // Step 1: Collect everything
         List<string> lfdFiles = [];
-        if (CollectLFDFiles(ref lfdFiles))
+        if (!CollectLFDFiles(ref lfdFiles))
             return false;
+        Logger.Debug($"Found {lfdFiles.Count} lfd files");
         computedMD5 = ReadMD5Hashes();
 
         // Step 2: Compile everything (compile dependencies before?)
@@ -61,12 +72,14 @@ public class ProjectCompilerService
 
         // Step ?: Put md5 hashes inside the dotfolder for next time.
         SaveMD5Hashes();
+        Logger.Debug($"MD5 saved.");
 
         await Task.WhenAll();
+        Logger.Information($"============================ End of Compilation");
         return true;
     }
 
-    public bool CollectLFDFiles(ref List<string> lfdFiles)
+    private bool CollectLFDFiles(ref List<string> lfdFiles)
     {
         try
         {
@@ -81,7 +94,7 @@ public class ProjectCompilerService
         }
     }
 
-    public async Task<(bool, string)> CompileLFDFile(string lfdFilePath, bool showOnly = false)
+    private async Task<(bool, string)> CompileLFDFile(string lfdFilePath, bool showOnly = false)
     {
         try
         {
@@ -105,7 +118,8 @@ public class ProjectCompilerService
             StringBuilder sb = new();
 
             sb.AppendLine($"-- Generated from {relativePath} by LunaForge {App.AppVersion}");
-            sb.AppendLine($"-- Compiled at {DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy (day/month/year)")}");
+            sb.AppendLine($"-- Compiled at {DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")} (dd/mm/yyyy)");
+            sb.AppendLine();
 
             foreach (TreeNode node in file.TreeNodes)
                 foreach (var line in node.ToLua(0))
@@ -134,6 +148,9 @@ public class ProjectCompilerService
     {
         try
         {
+            if (!File.Exists(MD5HashesFilePath)) // stupid
+                return [];
+
             string contents = File.ReadAllText(MD5HashesFilePath, Encoding.UTF8);
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(contents) ?? [];
         }
