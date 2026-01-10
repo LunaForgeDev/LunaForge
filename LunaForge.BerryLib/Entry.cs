@@ -1,20 +1,19 @@
-﻿using LunaForge.Plugins;
-using System.Windows.Forms;
+﻿using LunaForge.Models;
+using LunaForge.Plugins;
 using LunaForge.Services;
 using Serilog;
-using LunaForge.Models;
-using LunaForge.THlib.Nodes;
+using System.Numerics;
+using System.Windows.Forms;
 using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
-using LunaForge.THlib.Nodes.Task;
 
-namespace LunaForge.THlib;
+namespace LunaForge.BerryLib;
 
 public class Plugin : NodeLibraryBase
 {
-    public override string LibraryName => "LunaForge.THlib";
-    public override string DisplayName => "THlib";
+    public override string LibraryName => "LunaForge.BerryLib";
+    public override string DisplayName => "BerryLib";
     public override string Version => "1.0.0";
-    public override string Description => "THlib node library for LunaForge";
+    public override string Description => "BerryLib node library for LunaForge";
 
     public override void Initialize()
     {
@@ -27,7 +26,6 @@ public class Plugin : NodeLibraryBase
         var stage = CreateCategory("Stage");
         #region Task
         var task = CreateCategory("Task");
-        task.AddNode<TaskNode>("Task");
         #endregion
         var enemy = CreateCategory("Enemy");
         var boss = CreateCategory("Boss");
@@ -38,7 +36,6 @@ public class Plugin : NodeLibraryBase
         var graphics = CreateCategory("Graphics");
         #region Audio
         var audio = CreateCategory("Audio");
-        audio.AddNode<PlaySE>("Play Sound");
         #endregion
         var render = CreateCategory("Render");
         var background = CreateCategory("Background");
@@ -48,19 +45,19 @@ public class Plugin : NodeLibraryBase
 
     public override void Shutdown()
     {
-        Logger.Information("THlib library shutting down");
+        Logger.Information("BerryLib library shutting down");
         base.Shutdown();
     }
 }
 
-public class THlibTarget : ICompilationTarget
+public class BerryLibTarget : ICompilationTarget
 {
-    public string TargetName { get; } = "THlib";
-    public SupportedBranches SupportedBranches { get; } = SupportedBranches.All;
-    public string BuildDirectory { get; } = "mod/";
-    public bool SupportStageDebug { get; } = true;
-    public bool SupportSCDebug { get; } = true;
-    public string RootBaseContents { get; } = "Include('THlib.lua')";
+    public string TargetName { get; } = "BerryLib";
+    public SupportedBranches SupportedBranches { get; } = SupportedBranches.Sub | SupportedBranches.Flux;
+    public string BuildDirectory { get; } = "game/";
+    public bool SupportStageDebug { get; } = false;
+    public bool SupportSCDebug { get; } = false;
+    public string RootBaseContents { get; } = "";
 
     public void BeforeRun()
     {
