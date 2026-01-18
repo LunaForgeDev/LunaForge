@@ -34,13 +34,13 @@ public abstract partial class TreeNode : ObservableObject
     [JsonIgnore]
     public bool HasChildren => Children.Count > 0;
 
-    [ObservableProperty]
+    [ObservableProperty, JsonIgnore]
     public bool isSelected;
     
-    [ObservableProperty]
+    [ObservableProperty, JsonIgnore]
     public bool isExpanded;
     
-    [ObservableProperty]
+    [ObservableProperty, JsonIgnore]
     public bool isBanned;
 
     partial void OnIsSelectedChanged(bool value)

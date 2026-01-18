@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using AvalonDock;
+using AvalonDock.Layout.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LunaForge.Backend.EditorCommands;
 using LunaForge.Models;
@@ -105,6 +107,7 @@ public partial class MainWindowModel : ObservableObject
                 Project = project;
                 await project.InitializePlugins();
                 RefreshNodeLibraryUI();
+                project.LoadOpenedFiles(); // Doing this here because node library isn't ready yet if I do it in the plugin init.
                 LoadOpenedFiles();
                 
                 DiscordRPCService.Default?.SetProjectPresence(Project.Name);
@@ -485,7 +488,90 @@ public partial class MainWindowModel : ObservableObject
         });
     }
 
+    [RelayCommand]
+    private void AddNode()
+    {
+        // TODO: Create a small window dialog with only keyboard input to search nodes and create them.
+    }
+
     #endregion
+
+    public bool HandleWindowClosing()
+    {
+        if (Project == null)
+            return true;
+
+        var unsavedFiles = Project.Files.Where(f => f.IsUnsaved).ToList();
+
+        if (unsavedFiles.Count > 0)
+        {
+            var fileNames = string.Join("\n", unsavedFiles.Select(f => $"- {f.FileName}"));
+            var result = MessageBox.Show(
+                $"The following files have unsaved changes:\n\n{fileNames}\n\nDo you want to save all changes before closing?",
+                "LunaForge - Unsaved Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    if (!SaveAllUnsavedFiles(unsavedFiles))
+                    {
+                        Logger.Warning("Some files failed to save. Aborting close.");
+                        return false;
+                    }
+                    break;
+                case MessageBoxResult.No:
+                    break;
+                case MessageBoxResult.Cancel:
+                    return false;
+            }
+        }
+
+        SaveProjectOnClose();
+        return true;
+    }
+
+    private bool SaveAllUnsavedFiles(List<DocumentFile> unsavedFiles)
+    {
+        bool allSaved = true;
+        foreach (var file in unsavedFiles)
+        {
+            if (string.IsNullOrEmpty(file.FilePath))
+            {
+                Logger.Warning($"File '{file.FileName}' has no path and cannot be auto-saved.");
+                allSaved = false;
+                continue;
+            }
+
+            if (!file.Save())
+            {
+                Logger.Error($"Failed to save file: {file.FileName}");
+                allSaved = false;
+            }
+            else
+            {
+                Logger.Information($"Saved file: {file.FileName}");
+            }
+        }
+        return allSaved;
+    }
+
+    private void SaveProjectOnClose()
+    {
+        if (Project == null)
+            return;
+
+        try
+        {
+            Project.Save();
+            Logger.Information("Project saved on close.");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to save project on close. Reason:\n{ex}");
+        }
+    }
 
     partial void OnCurrentInsertModeChanged(InsertMode value)
     {

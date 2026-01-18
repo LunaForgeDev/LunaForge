@@ -5,6 +5,7 @@ using LunaForge.Helpers;
 using LunaForge.Models.Documents;
 using LunaForge.Services;
 using LunaForge.ViewModels;
+using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,7 +25,6 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
     {
         IsExpanded = true;
         MetaData = TreeNodeMetaData.Process(this);
-        
         InitializeAttributes();
     }
 
@@ -33,6 +34,14 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
         ParentTree = workspace;
     }
 
+    [OnDeserialized]
+    internal void OnDeserializedMethod(StreamingContext context)
+    {
+        MetaData = TreeNodeMetaData.Process(this);
+        InitializeAttributes();
+    }
+
+    [JsonIgnore]
     public string ScreenString => ToString();
 
     public override string ToString()
@@ -51,7 +60,8 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
             var attr = new NodeAttribute(sourceAttr.Name, sourceAttr.DefaultValue, this)
             {
                 Value = sourceAttr.Value,
-                EditorWindow = sourceAttr.EditorWindow
+                EditorWindow = sourceAttr.EditorWindow,
+                PropertyName = sourceAttr.PropertyName
             };
             Attributes.Add(attr);
         }

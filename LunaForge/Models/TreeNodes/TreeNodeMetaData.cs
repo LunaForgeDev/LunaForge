@@ -35,7 +35,7 @@ public partial class TreeNodeMetaData() : ObservableObject
         {
             Leaf = t.IsDefined(typeof(LeafNodeAttribute), false),
             IsFolder = t.IsDefined(typeof(IsFolderAttribute), false),
-            CannotBeDeleted = !t.IsDefined(typeof(CannotDeleteAttribute), false),
+            CannotBeDeleted = t.IsDefined(typeof(CannotDeleteAttribute), false),
             CannotBeBanned = t.IsDefined(typeof(CannotBanAttribute), false),
             Icon = $"/{t.Assembly.GetName().Name};component/Nodes/Images/{t.GetCustomAttribute<NodeIconAttribute>()?.Path}",
             RequireParent = GetTypes(t.GetCustomAttribute<RequireParentAttribute>()?.ParentType ?? []),

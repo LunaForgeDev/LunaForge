@@ -27,6 +27,8 @@ public partial class FileSystemItem : ObservableObject
     public FileSystemItem Parent { get; set; }
     public bool HasLoadedChildren { get; set; }
 
+    public bool IsRoot => Parent == null;
+
     public FileSystemItem() { }
 
     public FileSystemItem(string path, bool isFolder)

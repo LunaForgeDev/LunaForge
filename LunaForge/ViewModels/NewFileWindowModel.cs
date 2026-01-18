@@ -55,6 +55,14 @@ public partial class NewFileWindowModel : ObservableObject
         FilePath = MainWindowModel.Project.ProjectRoot;
     }
 
+    public NewFileWindowModel(NewFileWindow owner, string preFilledPath)
+    {
+        this.owner = owner;
+        LoadTemplates();
+        UpdateFilteredTemplates();
+        FilePath = string.IsNullOrEmpty(preFilledPath) ? MainWindowModel.Project.ProjectRoot : preFilledPath;
+    }
+
     private void LoadTemplates()
     {
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

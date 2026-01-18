@@ -23,6 +23,8 @@ public abstract partial class TreeNode
 
     public bool ValidateChild(TreeNode parent, TreeNode toValidate)
     {
+        if (MetaData.Leaf)
+            return false;
         if (MetaData.IsFolder)
             return GetRealParent()?.ValidateChild(toValidate, parent) ?? true;
         if (toValidate.MetaData.IsFolder)
@@ -34,8 +36,6 @@ public abstract partial class TreeNode
             }
             return true;
         }
-        if (MetaData.Leaf)
-            return false;
         var e = this != parent
             ? GetRealChildren().Concat(parent.GetRealChildren()).Distinct()
             : GetRealChildren();
@@ -136,7 +136,7 @@ public abstract partial class TreeNode
             foreach (TreeNode t in GetRealChildren())
                 if (t.MetaData.CannotBeDeleted)
                     return false;
-            return true;
+            return !MetaData.CannotBeDeleted;
         }
         else
             return !MetaData.CannotBeDeleted;

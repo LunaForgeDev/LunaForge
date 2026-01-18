@@ -25,5 +25,11 @@ namespace LunaForge.Views
             InitializeComponent();
             DataContext = new NewFileWindowModel(this);
         }
+
+        public NewFileWindow(string preFilledPath)
+        {
+            InitializeComponent();
+            DataContext = new NewFileWindowModel(this, preFilledPath);
+        }
     }
 }

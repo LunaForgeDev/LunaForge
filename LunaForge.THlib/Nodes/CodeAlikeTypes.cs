@@ -18,6 +18,6 @@ public class CodeAlikeTypes : ITypeEnumerable
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return this.GetEnumerator();
+        return GetEnumerator();
     }
 }

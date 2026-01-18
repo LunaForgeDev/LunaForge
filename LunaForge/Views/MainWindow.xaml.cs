@@ -1,4 +1,7 @@
-﻿using LunaForge.ViewModels;
+﻿using AvalonDock;
+using LunaForge.Models;
+using LunaForge.ViewModels;
+using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,15 +19,27 @@ namespace LunaForge
 {
     public partial class MainWindow : Window
     {
+        private MainWindowModel _viewModel;
+
         public MainWindow(string projectPath)
         {
             InitializeComponent();
-            DataContext = new MainWindowModel(projectPath);
+            _viewModel = new MainWindowModel(projectPath);
+            DataContext = _viewModel;
 
+            Closing += MainWindow_Closing;
             Closed += (s, e) =>
             {
                 Application.Current.Shutdown();
             };
+        }
+
+        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        {
+            if (!_viewModel.HandleWindowClosing())
+            {
+                e.Cancel = true;
+            }
         }
 
         private void TreeViewItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -68,6 +83,43 @@ namespace LunaForge
                 {
                     viewModel.SelectedFile.SelectedNode = node;
                 }
+            }
+        }
+
+        private void AttributeTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                CommitAttributeChange(sender);
+                e.Handled = true;
+            }
+        }
+
+        private void AttributeTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitAttributeChange(sender);
+        }
+
+        private void CommitAttributeChange(object sender)
+        {
+            string newValue = null;
+            Models.TreeNodes.NodeAttribute attribute = null;
+
+            if (sender is TextBox textBox)
+            {
+                newValue = textBox.Text;
+                attribute = textBox.DataContext as Models.TreeNodes.NodeAttribute;
+            }
+            else if (sender is ComboBox comboBox)
+            {
+                newValue = comboBox.Text;
+                attribute = comboBox.DataContext as Models.TreeNodes.NodeAttribute;
+            }
+
+            if (attribute != null && newValue != null)
+            {
+                attribute.ChangeValueWithCommand(newValue);
+                Keyboard.ClearFocus();
             }
         }
 

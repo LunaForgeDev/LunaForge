@@ -23,6 +23,9 @@ public partial class NodeAttribute : ObservableObject
     public string Name { get; set; } = "Attr";
     
     [JsonProperty]
+    public string PropertyName { get; set; } = string.Empty;
+    
+    [JsonProperty]
     public string EditorWindow { get; set; } = string.Empty;
     
     [JsonIgnore]
@@ -45,6 +48,7 @@ public partial class NodeAttribute : ObservableObject
     public NodeAttribute(string name, TreeNode parent)
     {
         Name = name;
+        PropertyName = name;
         ParentNode = parent;
         _value = TempValue = string.Empty;
     }
@@ -52,6 +56,7 @@ public partial class NodeAttribute : ObservableObject
     public NodeAttribute(string name, string defaultValue, TreeNode? parent = null)
     {
         Name = name;
+        PropertyName = name;
         DefaultValue = defaultValue;
         _value = TempValue = defaultValue;
         ParentNode = parent;
@@ -60,6 +65,7 @@ public partial class NodeAttribute : ObservableObject
     public NodeAttribute(string name, string editorWindow, string defaultValue, TreeNode? parent = null)
     {
         Name = name;
+        PropertyName = name;
         EditorWindow = editorWindow;
         DefaultValue = defaultValue;
         _value = TempValue = defaultValue;
@@ -81,6 +87,21 @@ public partial class NodeAttribute : ObservableObject
         string oldValue = Value;
         Value = newValue;
         ParentNode?.RaiseAttributeChanged(this, new NodeAttributeChangedEventArgs(oldValue, newValue));
+    }
+
+    public bool ChangeValueWithCommand(string newValue)
+    {
+        if (Value == newValue)
+            return false;
+
+        if (ParentNode?.ParentTree == null)
+        {
+            Value = newValue;
+            return false;
+        }
+
+        var command = new Backend.EditorCommands.ChangeAttributeCommand(this, newValue);
+        return ParentNode.ParentTree.AddAndExecuteCommand(command);
     }
 
     public void ResetToDefault()
@@ -109,7 +130,8 @@ public partial class NodeAttribute : ObservableObject
         )
         {
             Value = currentValue,
-            EditorWindow = string.Empty
+            EditorWindow = string.Empty,
+            PropertyName = property.Name
         };
 
         return nodeAttribute;

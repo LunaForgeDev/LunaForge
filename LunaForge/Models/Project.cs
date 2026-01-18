@@ -210,7 +210,6 @@ public class Project : IDisposable
             };
 
             proj.ProjectConfig.CommitAllAndSave();
-            proj.LoadOpenedFiles();
 
             return (proj, "");
         }
@@ -237,7 +236,7 @@ public class Project : IDisposable
         }
     }
 
-    private void LoadOpenedFiles()
+    public void LoadOpenedFiles()
     {
         try
         {
@@ -253,6 +252,7 @@ public class Project : IDisposable
             {
                 var file = Path.Combine(ProjectRoot, fileName);
                 // Proxy to MainWindowModel because it handles opened files a different way (for recent opens)
+                Logger.Information($"Trying to open from previous session: {file}");
                 MainWindowModel.Instance.OpenFile(file);
             }
 
