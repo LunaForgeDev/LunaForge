@@ -40,6 +40,8 @@ public abstract partial class TreeNode
             ? GetRealChildren().Concat(parent.GetRealChildren()).Distinct()
             : GetRealChildren();
 
+        if (!MatchUniqueness(e))
+            return false;
         if (!toValidate.MatchParents(this))
             return false;
 
@@ -55,11 +57,25 @@ public abstract partial class TreeNode
         return true;
     }
 
+    private bool MatchUniqueness(IEnumerable<TreeNode> children)
+    {
+        if (children == null || !children.Any())
+            return false;
+        HashSet<Type> foundTypes = [];
+        foreach (TreeNode t in children)
+        {
+            if (t.MetaData.Unique && foundTypes.Contains(t.GetType()))
+                return false;
+            foundTypes.Add(t.GetType());
+        }
+        return true;
+    }
+
     private bool MatchParents(TreeNode toMatch)
     {
         Type[] ts = MetaData.RequireParent;
         if (toMatch == null) return false;
-        if (ts == null) return true;
+        if (ts == null || ts.Length == 0) return true;
         
         foreach (Type t in ts)
         {

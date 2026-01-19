@@ -27,6 +27,8 @@ public partial class TreeNodeMetaData() : ObservableObject
     //public bool CannotBeDragTarget = false;
     public Type[] RequireParent = [];
     public Type[][] RequireAncestor = [];
+    [ObservableProperty]
+    public bool unique = false;
 
     public static TreeNodeMetaData Process(TreeNode node)
     {
@@ -39,6 +41,7 @@ public partial class TreeNodeMetaData() : ObservableObject
             CannotBeBanned = t.IsDefined(typeof(CannotBanAttribute), false),
             Icon = $"/{t.Assembly.GetName().Name};component/Nodes/Images/{t.GetCustomAttribute<NodeIconAttribute>()?.Path}",
             RequireParent = GetTypes(t.GetCustomAttribute<RequireParentAttribute>()?.ParentType ?? []),
+            Unique = t.IsDefined(typeof(UniqueAttribute), false)
         };
         var attrs = t.GetCustomAttributes<RequireAncestorAttribute>();
         meta.RequireAncestor = null;
@@ -58,7 +61,7 @@ public partial class TreeNodeMetaData() : ObservableObject
             Type it = typeof(ITypeEnumerable);
             foreach (Type t in src)
             {
-                if (t.IsAssignableFrom(t))
+                if (it.IsAssignableFrom(t))
                 {
                     ITypeEnumerable o = t.GetConstructor(Type.EmptyTypes).Invoke([]) as ITypeEnumerable;
                     foreach (Type ty in o)
