@@ -13,7 +13,7 @@ public enum BaseConfigEnum
 
     // ## SERVICES ## //
     [BaseConfig(ConfigSystemCategory.Services, false)] UseDiscordRPC,
-    [BaseConfig(ConfigSystemCategory.Services, "https://lunaforge.rulholos.fr/")] TemplateServerUrl,
+    [BaseConfig(ConfigSystemCategory.Services, "https://lunaforge.rulholos.fr/marketplace")] TemplateServerUrl,
 
     // ## DEFAULT PROJECT ## //
     [BaseConfig(ConfigSystemCategory.DefaultProject, "", true)] OpenedFiles,
