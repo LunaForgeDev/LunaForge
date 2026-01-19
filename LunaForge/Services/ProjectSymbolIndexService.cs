@@ -58,6 +58,8 @@ public class ProjectSymbolIndexService : IDisposable
     private FileSystemWatcher? fileWatcher;
     private readonly HashSet<string> pendingUpdates = [];
     private readonly object updateLock = new();
+    private readonly SemaphoreSlim saveLock = new(1, 1);
+    private bool saveScheduled;
 
     public event EventHandler<SymbolIndexChangedEventArgs>? SymbolIndexChanged;
 
@@ -192,7 +194,7 @@ public class ProjectSymbolIndexService : IDisposable
             fileDependencies[relativePath] = doc.Dependencies ?? [];
             fileModificationTimes[relativePath] = lastWriteTime;
 
-            SaveIndex();
+            ScheduleDebouncedSave();
             NotifySymbolIndexChanged(relativePath, ChangeType.Modified);
 
             Logger.Debug($"Index file: {relativePath} ({exports.Count} exports)");
@@ -219,7 +221,7 @@ public class ProjectSymbolIndexService : IDisposable
             fileDependencies[relativePath] = doc.Dependencies ?? [];
             fileModificationTimes[relativePath] = DateTime.Now;
 
-            SaveIndex();
+            ScheduleDebouncedSave();
             NotifySymbolIndexChanged(relativePath, ChangeType.Modified);
 
             Logger.Debug($"Indexed opened document: {relativePath} ({exports.Count} exports)");
@@ -230,6 +232,52 @@ public class ProjectSymbolIndexService : IDisposable
         }
 
         await Task.CompletedTask;
+    }
+
+    private void ScheduleDebouncedSave()
+    {
+        lock (updateLock)
+        {
+            if (saveScheduled)
+                return;
+            saveScheduled = true;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(300); // Debounce delay
+
+            lock (updateLock)
+                saveScheduled = false;
+
+            await SaveIndexAsync();
+        });
+    }
+
+    private async Task SaveIndexAsync()
+    {
+        await saveLock.WaitAsync();
+        try
+        {
+            var index = new
+            {
+                LastUpdated = DateTime.Now,
+                FileExports = fileExports.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                FileDependencies = fileDependencies.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                FileModificationTimes = fileModificationTimes.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+            };
+
+            string json = JsonConvert.SerializeObject(index, Formatting.Indented);
+            await File.WriteAllTextAsync(indexFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to save symbol index: {ex.Message}");
+        }
+        finally
+        {
+            saveLock.Release();
+        }
     }
 
     private DocumentFileLFD? GetOpenedDocument(string filePath)
@@ -321,6 +369,7 @@ public class ProjectSymbolIndexService : IDisposable
 
     private void SaveIndex()
     {
+        saveLock.Wait();
         try
         {
             var index = new
@@ -337,6 +386,10 @@ public class ProjectSymbolIndexService : IDisposable
         catch (Exception ex)
         {
             Logger.Error($"Failed to save symbol index: {ex.Message}");
+        }
+        finally
+        {
+            saveLock.Release();
         }
     }
 

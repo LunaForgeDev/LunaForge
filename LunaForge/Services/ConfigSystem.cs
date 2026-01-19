@@ -262,6 +262,7 @@ public class ConfigSystem
 
     /// <summary>
     /// Registers all base configuration values for the specified configuration system, optionally filtering by category.
+    /// Uses existing values from the config if they exist, otherwise falls back to default values from the enum attribute.
     /// </summary>
     /// <typeparam name="T">The type of configuration system to register base configurations for. Must inherit from ConfigSystem.</typeparam>
     /// <param name="config">A reference to the configuration system instance in which to register the base configuration values.</param>
@@ -274,9 +275,37 @@ public class ConfigSystem
             if (category != null && attr.Category != category)
                 continue;
 
+            string key = Enum.GetName(enumVal)!;
+            object valueToUse = attr.DefaultValue;
+
+            if (config.entries.TryGetValue(key, out var existingEntry))
+            {
+                try
+                {
+                    dynamic dyn = existingEntry;
+                    object existingValue = dyn.Value;
+                    
+                    if (existingValue != null)
+                    {
+                        if (existingValue.GetType() == attr.DefaultValueType)
+                        {
+                            valueToUse = existingValue;
+                        }
+                        else
+                        {
+                            valueToUse = Convert.ChangeType(existingValue, attr.DefaultValueType);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Failed to use existing config value for '{key}', using default. Reason: {ex.Message}");
+                }
+            }
+
             var method = typeof(T).GetMethod("Register");
             var register = method.MakeGenericMethod(attr.DefaultValueType);
-            register.Invoke(config, [attr.Category, Enum.GetName(enumVal), attr.DefaultValue]);
+            register.Invoke(config, [attr.Category, key, valueToUse]);
         }
     }
 }
