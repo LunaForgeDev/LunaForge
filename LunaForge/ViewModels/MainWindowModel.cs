@@ -1,6 +1,4 @@
-﻿using AvalonDock;
-using AvalonDock.Layout.Serialization;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LunaForge.Backend.EditorCommands;
 using LunaForge.Models;
@@ -38,7 +36,7 @@ public partial class MainWindowModel : ObservableObject
 {
     private readonly ILogger Logger = CoreLogger.Create("MainWindow");
 
-    public static Project Project { get; set; } // Only one Window opened per instance of this software. So this works.
+    public static Project? Project { get; set; } // Only one Window opened per instance of this software. So this works.
 
     [ObservableProperty]
     public string debugString = "";
@@ -494,6 +492,81 @@ public partial class MainWindowModel : ObservableObject
         // TODO: Create a small window dialog with only keyboard input to search nodes and create them.
     }
 
+    #region Copy, Cut and Paste Commands (help)
+
+    [RelayCommand(CanExecute = nameof(CanCopy))]
+    private void Copy()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            SelectedFile.SelectedNode?.Copy();
+        }
+        else
+        { }
+    }
+    private bool CanCopy()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            return TreeNode.IsNodeSelected();
+        }
+        else // TODO: Handle other file types
+        {
+
+        }
+
+        return false;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCut))]
+    private void Cut()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            SelectedFile.SelectedNode?.Cut();
+        }
+        else
+        { }
+    }
+    private bool CanCut()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            return SelectedFile.SelectedNode?.CanLogicallyDelete() ?? false;
+        }
+        else // TODO: Handle other file types
+        {
+
+        }
+
+        return false;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPaste))]
+    private void Paste()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            SelectedFile.SelectedNode?.Paste();
+        }
+        else
+        { }
+    }
+    private bool CanPaste()
+    {
+        if (SelectedFile is DocumentFileLFD lfdFile)
+        {
+            return TreeNode.CanPaste();
+        }
+        else // TODO: Handle other file types
+        {
+
+        }
+
+        return false;
+    }
+
+    #endregion
     #endregion
 
     public bool HandleWindowClosing()
@@ -528,6 +601,7 @@ public partial class MainWindowModel : ObservableObject
             }
         }
 
+        FileViewer?.Dispose();
         SaveProjectOnClose();
         return true;
     }

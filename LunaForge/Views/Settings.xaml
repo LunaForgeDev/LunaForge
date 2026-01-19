@@ -4,7 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LunaForge.Views"
+        xmlns:s="clr-namespace:System;assembly=mscorlib"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:vm="clr-namespace:LunaForge.ViewModels"
+        xmlns:tools="clr-namespace:LunaForge.Tools"
         mc:Ignorable="d"
         Title="LunaForge Settings"
         Height="500"
@@ -13,6 +16,11 @@
     <Window.DataContext>
         <vm:SettingsViewModel/>
     </Window.DataContext>
+    <Window.Resources>
+        <tools:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <s:Boolean x:Key="True">True</s:Boolean>
+        <s:Boolean x:Key="False">False</s:Boolean>
+    </Window.Resources>
     <DockPanel>
         <StackPanel DockPanel.Dock="Bottom"
                     HorizontalAlignment="Right"
@@ -31,12 +39,67 @@
                     Margin="5"
                     DockPanel.Dock="Top">
             <TabItem Header="General">
+                <StackPanel Margin="5">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Projects Folder" Width="100" VerticalAlignment="Center"/>
+                        <Button Content="..." Width="25" DockPanel.Dock="Right"
+                                Command="{Binding OpenProjectsFolderPathCommand}"/>
+                        <TextBox Text="{Binding ProjectsFolder}" Margin="5,0" Padding="1" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Code Indent Spaces" Width="110" VerticalAlignment="Center"/>
+                        <xctk:IntegerUpDown Value="{Binding CodeIndentSpaces}" Margin="5,0" VerticalAlignment="Center" Minimum="0"/>
+                    </DockPanel>
+                </StackPanel>
             </TabItem>
             <TabItem Header="Services">
+                <StackPanel Margin="5">
+                    <DockPanel Margin="0,2">
+                        <CheckBox Content="Enable Discord RPC" IsChecked="{Binding EnableDiscordRPC}" Margin="5,0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Marketplace repo server" Width="135" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding MarketplaceRepoServer}" Margin="5,0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
             </TabItem>
             <TabItem Header="Default Project">
+                <StackPanel Margin="5">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Project Author" Width="100" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding DefaultProjectAuthor}" Margin="0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="LuaSTG Executable" Width="110" VerticalAlignment="Center"/>
+                        <Button Content="..." Width="25" DockPanel.Dock="Right"
+                                Command="{Binding OpenLSTGPathCommand}"
+                                CommandParameter="{StaticResource True}"/>
+                        <TextBox Text="{Binding DefaultLuaSTGExecutablePath}" Margin="5,0" Padding="1" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Compilation Target" Width="110" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding DefaultCompilationTarget}" Margin="0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
             </TabItem>
-            <TabItem Header="Current Project">
+            <TabItem Header="Current Project" Visibility="{Binding IsProjectLoaded, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel Margin="5">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Project Author" Width="100" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding ProjectAuthor}" Margin="0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="LuaSTG Executable" Width="110" VerticalAlignment="Center"/>
+                        <Button Content="..." Width="25" DockPanel.Dock="Right"
+                                Command="{Binding OpenLSTGPathCommand}"
+                                CommandParameter="{StaticResource False}"/>
+                        <TextBox Text="{Binding LuaSTGExecutablePath}" Margin="5,0" Padding="1" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Compilation Target" Width="110" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding CompilationTarget}" Margin="0" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </StackPanel>
             </TabItem>
         </TabControl>
     </DockPanel>

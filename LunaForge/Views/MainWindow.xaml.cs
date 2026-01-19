@@ -1,5 +1,4 @@
-﻿using AvalonDock;
-using LunaForge.Models;
+﻿using LunaForge.Models;
 using LunaForge.ViewModels;
 using System.ComponentModel;
 using System.Text;

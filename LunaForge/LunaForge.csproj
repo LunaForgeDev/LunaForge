@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>False</UseWindowsForms>
+    <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
+    <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +22,8 @@
     <None Remove="Images\Error.png" />
     <None Remove="Images\find.png" />
     <None Remove="Images\foldregion.png" />
-    <None Remove="Images\Icon.png" />
+    <None Remove="Images\Icon-file.png" />
+    <None Remove="Images\Icon.ico" />
     <None Remove="Images\IconRemoteTemplate.png" />
     <None Remove="Images\Info.png" />
     <None Remove="Images\new.png" />
@@ -67,12 +70,19 @@
     <None Remove="Nodes\Images\SinusoidalInterpolationVariable.png" />
     <None Remove="Nodes\Images\SinusoidalMovementVariable.png" />
     <None Remove="Nodes\Images\SinusoidalOscillationVariable.png" />
+    <None Remove="Nodes\Images\then.png" />
     <None Remove="Nodes\Images\unidentifiedNode.png" />
     <None Remove="Nodes\Images\userdefinednode.png" />
     <None Remove="Nodes\Images\Warning.png" />
     <None Remove="Nodes\Images\while.png" />
     <None Remove="Resources\fs-pixel-sans-unicode-regular.ttf" />
     <None Remove="Resources\JBMono.ttf" />
+    <None Remove="Resources\ShareTechMono-Regular.ttf" />
+    <None Remove="Resources\Spectral-Regular.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Images\Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -88,8 +98,8 @@
   <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Dirkster.AvalonDock" Version="4.72.1" />
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="McMaster.NETCore.Plugins" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
@@ -129,6 +139,12 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\foldregion.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\Icon-file.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\Icon.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\Icon.png">
@@ -272,6 +288,9 @@
     <Resource Include="Nodes\Images\SinusoidalOscillationVariable.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Nodes\Images\then.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Nodes\Images\unidentifiedNode.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -290,6 +309,25 @@
     <Resource Include="Resources\JBMono.ttf">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resources\ShareTechMono-Regular.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Spectral-Regular.ttf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="LFTheme\Old\Controls.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Images\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

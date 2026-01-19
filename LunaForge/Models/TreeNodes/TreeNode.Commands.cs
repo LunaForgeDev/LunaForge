@@ -11,7 +11,7 @@ namespace LunaForge.Models.TreeNodes;
 
 public abstract partial class TreeNode
 {
-    private bool IsNodeSelected() => MainWindowModel.Instance.SelectedFile?.SelectedNode != null;
+    public static bool IsNodeSelected() => MainWindowModel.Instance.SelectedFile?.SelectedNode != null;
 
     [RelayCommand(CanExecute = nameof(IsNodeSelected))]
     public void Copy()
@@ -19,7 +19,7 @@ public abstract partial class TreeNode
         MainWindowModel.Instance.TreeNodeClipboard = (TreeNode)MainWindowModel.Instance.SelectedFile.SelectedNode!.Clone();
     }
 
-    [RelayCommand(CanExecute = nameof(IsNodeSelected))]
+    [RelayCommand(CanExecute = nameof(CanLogicallyDelete))]
     public void Cut()
     {
         MainWindowModel.Instance.TreeNodeClipboard = (TreeNode)MainWindowModel.Instance.SelectedFile.SelectedNode!.Clone();
@@ -35,7 +35,7 @@ public abstract partial class TreeNode
         try
         {
             TreeNode node = (TreeNode)MainWindowModel.Instance.TreeNodeClipboard.Clone();
-            node.FixParentDoc((DocumentFileLFD)ParentTree);
+            node.FixParentDoc(ParentTree);
             MainWindowModel.Instance.InsertNode(node, node.NodeName);
         }
         catch (Exception ex)
@@ -44,7 +44,7 @@ public abstract partial class TreeNode
             MessageBox.Show("Couldn't paste the node. See the logs for the reason.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
-    private bool CanPaste() => MainWindowModel.Instance.TreeNodeClipboard != null;
+    public static bool CanPaste() => MainWindowModel.Instance.TreeNodeClipboard != null;
 
     [RelayCommand(CanExecute = nameof(CanLogicallyDelete))]
     public void Delete()

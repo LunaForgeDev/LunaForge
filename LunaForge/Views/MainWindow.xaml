@@ -109,10 +109,10 @@
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
                 <TreeView.ItemContainerStyle>
-                    <Style TargetType="TreeViewItem">
-                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                        <EventSetter Event="Selected" Handler="TreeNode_Selected"/>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                    <EventSetter Event="Selected" Handler="TreeNode_Selected"/>
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
@@ -188,6 +188,9 @@
         <KeyBinding Key="Z" Modifiers="Ctrl" Command="{Binding UndoCommand}"/>
         <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding RedoCommand}"/>
         <KeyBinding Key="C" Modifiers="Alt" Command="{Binding SelectedFile.SelectedNode.ViewCodeCommand}"/>
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyCommand}"/>
+        <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding CutCommand}"/>
+        <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteCommand}"/>
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding AddNodeCommand}"/>
         <KeyBinding Key="Delete" Command="{Binding SelectedFile.SelectedNode.DeleteCommand}"/>
         <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding SwitchInsertModeCommand}" CommandParameter="Ancestor"/>
@@ -553,10 +556,10 @@
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
                 <TreeView.ItemContainerStyle>
-                    <Style TargetType="TreeViewItem">
-                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                        <EventSetter Event="PreviewMouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
-                        <EventSetter Event="Expanded" Handler="TreeViewItem_Expanded"/>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    <EventSetter Event="PreviewMouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
+                    <EventSetter Event="Expanded" Handler="TreeViewItem_Expanded"/>
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
