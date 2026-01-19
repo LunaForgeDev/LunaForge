@@ -10,13 +10,12 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using MessageBox = System.Windows.MessageBox;
 
 namespace LunaForge.ViewModels;
 
-public partial class FileViewerModel : ObservableObject
+public partial class FileViewerModel : ObservableObject, IDisposable
 {
     private static ILogger Logger = CoreLogger.Create("FileViewer");
 
@@ -25,6 +24,7 @@ public partial class FileViewerModel : ObservableObject
 
     private FileSystemWatcher watcher;
     private MainWindowModel mainWindowModel;
+    private bool isDisposed;
 
     public FileViewerModel()
     {
@@ -88,7 +88,7 @@ public partial class FileViewerModel : ObservableObject
 
     private void OnCreated(object sender, FileSystemEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        SafeDispatcherInvoke(() =>
         {
             try
             {
@@ -126,7 +126,7 @@ public partial class FileViewerModel : ObservableObject
 
     private void OnDeleted(object sender, FileSystemEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        SafeDispatcherInvoke(() =>
         {
             try
             {
@@ -152,7 +152,7 @@ public partial class FileViewerModel : ObservableObject
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        SafeDispatcherInvoke(() =>
         {
             try
             {
@@ -168,7 +168,7 @@ public partial class FileViewerModel : ObservableObject
 
     private void OnRenamed(object sender, RenamedEventArgs e)
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        SafeDispatcherInvoke(() =>
         {
             try
             {
@@ -516,6 +516,29 @@ public partial class FileViewerModel : ObservableObject
 
     #region Helper Methods
 
+    private void SafeDispatcherInvoke(Action action)
+    {
+        if (isDisposed)
+            return;
+
+        var app = Application.Current;
+        if (app == null)
+            return;
+
+        var dispatcher = app.Dispatcher;
+        if (dispatcher == null || dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+            return;
+
+        try
+        {
+            dispatcher.Invoke(action);
+        }
+        catch (TaskCanceledException)
+        {
+            // Not an issue lmao cry about it.
+        }
+    }
+
     private void CountContents(string folderPath, ref int fileCount, ref int folderCount)
     {
         try
@@ -571,6 +594,25 @@ public partial class FileViewerModel : ObservableObject
             return;
 
         MainWindowModel.Instance.OpenFile(item.FullPath);
+    }
+
+    public void Dispose()
+    {
+        if (isDisposed)
+            return;
+
+        isDisposed = true;
+
+        if (watcher != null)
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.Created -= OnCreated;
+            watcher.Deleted -= OnDeleted;
+            watcher.Changed -= OnChanged;
+            watcher.Renamed -= OnRenamed;
+            watcher.Dispose();
+            watcher = null;
+        }
     }
 
     #endregion
