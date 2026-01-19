@@ -107,13 +107,31 @@ public class ConfigSystem
             Logger.Warning($"Config entry '{key}' not found.");
             return new ConfigSystemEntry<T>(category, key, default!);
         }
-        if (entry is not ConfigSystemEntry<T> e)
+        if (entry is ConfigSystemEntry<T> e)
+            return e;
+
+        // Fucked up TOML deserialization because why????
+        try
         {
-            Logger.Warning($"Config entry '{key}' has type mismatch. Expected type: {typeof(T)}, got {entry.GetType()}");
-            return new ConfigSystemEntry<T>(category, key, default!);
+            dynamic dyn = entry;
+            object rawValue = dyn.Value;
+
+            // Genuinely, why.
+            if (rawValue != null && typeof(T).IsAssignableFrom(rawValue.GetType()) == false)
+            {
+                T convertedValue = (T)Convert.ChangeType(rawValue, typeof(T));
+                var converted = new ConfigSystemEntry<T>(dyn.Category, dyn.Key, convertedValue);
+                entries[key] = converted;
+                return converted;
+                // I'm so done.
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"Config entry '{key}' has type mismatch. Expected: {typeof(T)}, got: {entry.GetType()}. Error: {ex.Message}");
         }
 
-        return e;
+        return new ConfigSystemEntry<T>(category, key, default!);
     }
 
     public void SetOrCreate<T>(string key, T value, ConfigSystemCategory category = ConfigSystemCategory.General)
