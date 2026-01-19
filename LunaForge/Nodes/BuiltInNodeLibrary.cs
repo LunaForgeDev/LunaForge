@@ -31,6 +31,14 @@ public class BuiltInNodeLibrary : NodeLibraryBase
         general.AddNode<FolderYellow>("Yellow Folder");
         general.AddSeparator();
         general.AddNode<Code>("Code");
+        general.AddNode<CodeSegment>("Code Segment");
+        general.AddSeparator();
+        general.AddNode<IfNode>("If", () => {
+            var ifNode = new IfNode();
+            var thenNode = new IfThen();
+            ifNode.AddChild(thenNode);
+            return ifNode;
+        });
 
         #endregion
     }
