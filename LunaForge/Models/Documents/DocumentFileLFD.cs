@@ -24,6 +24,9 @@ public partial class DocumentFileLFD : DocumentFile
     [JsonProperty]
     public List<string> Dependencies { get; set; } = [];
 
+    [JsonIgnore]
+    public bool IsLoading { get; private set; } // Only for preventing symbol index updates during load
+
     public DocumentFileLFD() : this(string.Empty)
     { }
 
@@ -44,11 +47,13 @@ public partial class DocumentFileLFD : DocumentFile
         try
         {
             DocumentFileLFD doc = new(filePath);
+            doc.IsLoading = true;
             doc.TreeNodes.Clear();
 
             TreeNode root = CreateNodeFromFile(filePath, doc);
             doc.TreeNodes.Add(root);
 
+            doc.IsLoading = false;
             return doc;
         }
         catch (Exception ex)
@@ -143,23 +148,6 @@ public partial class DocumentFileLFD : DocumentFile
             Logger.Error($"Unable to write to file '{filePath}'. Reason:\n{ex}");
             return false;
         }
-    }
-
-    public void OnTreeNodesChanged(ObservableCollection<TreeNode> value)
-    {
-        UpdateSymbolIndex();
-    }
-
-    private void UpdateSymbolIndex()
-    {
-        _ = Task.Run(async () =>
-        {
-            var project = MainWindowModel.Project;
-            if (project?.SymbolIndex != null && !string.IsNullOrEmpty(FilePath))
-            {
-                await project.SymbolIndex.IndexOpenedDocumentAsync(this);
-            }
-        });
     }
 
     public bool Insert(TreeNode parent, TreeNode node, InsertMode insertMode, bool doInvoke = true)

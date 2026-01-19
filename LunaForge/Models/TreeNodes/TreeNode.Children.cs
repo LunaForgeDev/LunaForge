@@ -60,7 +60,7 @@ public abstract partial class TreeNode
     private bool MatchUniqueness(IEnumerable<TreeNode> children)
     {
         if (children == null || !children.Any())
-            return false;
+            return true;
         HashSet<Type> foundTypes = [];
         foreach (TreeNode t in children)
         {
@@ -92,8 +92,6 @@ public abstract partial class TreeNode
         child.ParentNode = this;
         Children.Add(child);
         OnPropertyChanged(nameof(HasChildren));
-
-        NotifyTreeStructureChanged();
     }
 
     public void InsertChild(TreeNode child, int index)
@@ -101,8 +99,6 @@ public abstract partial class TreeNode
         child.ParentNode = this;
         Children.Insert(index, child);
         OnPropertyChanged(nameof(HasChildren));
-
-        NotifyTreeStructureChanged();
     }
 
     public void RemoveChild(TreeNode node)
@@ -110,23 +106,6 @@ public abstract partial class TreeNode
         ParentTree.SelectedNode = node.GetNearestEdited();
         Children.Remove(node);
         OnPropertyChanged(nameof(HasChildren));
-
-        NotifyTreeStructureChanged();
-    }
-
-    private void NotifyTreeStructureChanged()
-    {
-        if (ParentTree is DocumentFileLFD lfdFile)
-        {
-            _ = Task.Run(async () =>
-            {
-                var project = MainWindowModel.Project;
-                if (project?.SymbolIndex != null)
-                {
-                    await project.SymbolIndex.IndexOpenedDocumentAsync(lfdFile);
-                }
-            });
-        }
     }
 
     public TreeNode GetNearestEdited()
