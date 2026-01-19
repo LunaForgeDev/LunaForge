@@ -196,6 +196,7 @@ public partial class DocumentFileLFD : DocumentFile
                     cmd = new InsertChildCommand(parent, node);
                     break;
             }
+            node.FixParentDoc(this);
             if (AddAndExecuteCommand(cmd))
             {
                 RevealTreeNode(node);
