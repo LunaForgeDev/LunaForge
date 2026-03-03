@@ -18,9 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Nodes\Images\playsound.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
+    <EmbeddedResource Include="Nodes\Images\playsound.png" />
   </ItemGroup>
 
 </Project>

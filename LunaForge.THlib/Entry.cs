@@ -62,6 +62,11 @@ public class THlibTarget : ICompilationTarget
     public bool SupportSCDebug { get; } = true;
     public string RootBaseContents { get; } = "Include('THlib.lua')";
 
+    public void PreCompile(string compileDirectory)
+    {
+
+    }
+
     public void BeforeRun()
     {
 

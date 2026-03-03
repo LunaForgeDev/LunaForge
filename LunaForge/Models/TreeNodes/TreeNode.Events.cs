@@ -69,5 +69,14 @@ public abstract partial class TreeNode
     public void RaiseDependencyAttributeChanged(NodeAttribute attr, NodeAttributeChangedEventArgs args)
     {
         OnDependencyAttributeChanged?.Invoke(attr, args);
+        OnDependencyAttributeChangedImpl(attr, args);
     }
+
+    /// <summary>
+    /// Use this to dynamically add or remove attributes based on the value of a dependency attribute.
+    /// And god have mercy on you for this is very fucky.
+    /// </summary>
+    /// <param name="attr">The dependency attribute that changed</param>
+    /// <param name="args">The change event arguments containing old and new values</param>
+    public virtual void OnDependencyAttributeChangedImpl(NodeAttribute attr, NodeAttributeChangedEventArgs args) { }
 }

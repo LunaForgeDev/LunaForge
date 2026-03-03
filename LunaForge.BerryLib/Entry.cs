@@ -63,4 +63,8 @@ public class BerryLibTarget : ICompilationTarget
     {
 
     }
+
+    public void PreCompile(string compileDirectory)
+    {
+    }
 }

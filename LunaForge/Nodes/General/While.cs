@@ -11,19 +11,19 @@ using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 
 namespace LunaForge.Nodes.General;
 
-[Serializable, NodeIcon("if.png")]
-public class IfNode : TreeNode
+[Serializable, NodeIcon("while.png")]
+public class While : TreeNode
 {
-    public override string NodeName { get; set; } = "If";
+    public override string NodeName { get; set; } = "While";
 
     [JsonConstructor]
-    public IfNode() : base() { }
+    public While() : base() { }
 
-    public IfNode(DocumentFileLFD workspace)
-        : this(workspace, "")
+    public While(DocumentFileLFD workspace)
+        : this(workspace, "While")
     { }
 
-    public IfNode(DocumentFileLFD workspace, string name)
+    public While(DocumentFileLFD workspace, string name)
         : base(workspace)
     { }
 
@@ -33,17 +33,14 @@ public class IfNode : TreeNode
 
     public override string ToString()
     {
-        return $"If ({Condition})";
+        return $"While ({Condition})";
     }
 
     public override IEnumerable<string> ToLua(int spacing)
     {
         string sp = Indent(spacing);
-        var i = GetRealChildren().OrderBy((s) => (s as IIfChild)?.Priority ?? 0);
-        List<TreeNode> t = [.. i];
-
-        yield return sp + "if " + Condition;
-        foreach (var a in ToLua(spacing, i))
+        yield return sp + $"while {Condition} do\n";
+        foreach (var a in base.ToLua(spacing + 1))
             yield return a;
         yield return sp + "end\n";
     }
@@ -58,7 +55,7 @@ public class IfNode : TreeNode
 
     public override object Clone()
     {
-        IfNode n = new();
+        While n = new();
         n.DeepCopyFrom(this);
         return n;
     }

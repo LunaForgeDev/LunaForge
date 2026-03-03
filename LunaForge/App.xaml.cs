@@ -8,6 +8,8 @@ namespace LunaForge;
 
 public partial class App : Application
 {
+    public const int MaxVariablesCount = 10;
+
     public const string AppVersion = "v0.10-alpha";
 
     protected override void OnStartup(StartupEventArgs e)

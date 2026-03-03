@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Media;
 using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 
 namespace LunaForge.Services;
@@ -58,6 +59,7 @@ public class ToolboxService
                         NodeType = node.NodeType,
                         DisplayName = node.DisplayName,
                         IconPath = node.IconPath,
+                        Icon = node.Icon,
                         Tag = $"{libraryName}.{category.Name}.{node.NodeType?.Name}",
                         Factory = node.Factory
                     });
@@ -128,6 +130,7 @@ public class ToolboxItem
     public Type? NodeType { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string IconPath { get; set; } = string.Empty;
+    public ImageSource? Icon { get; set; }
     public string Tag { get; set; } = string.Empty;
     public bool IsSeparator { get; set; }
     public Func<TreeNode>? Factory { get; set; }

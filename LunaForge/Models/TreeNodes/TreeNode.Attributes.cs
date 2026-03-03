@@ -1,6 +1,7 @@
 ﻿using LunaForge.Services;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -12,7 +13,7 @@ namespace LunaForge.Models.TreeNodes;
 public partial class TreeNode
 {
     [JsonProperty]
-    public List<NodeAttribute> Attributes { get; private set; } = [];
+    public ObservableCollection<NodeAttribute> Attributes { get; private set; } = [];
 
     private void InitializeAttributes()
     {
@@ -65,7 +66,11 @@ public partial class TreeNode
                         }
                     };
                 }
+                else if (attribute.IsDynamic)
+                    AttachDynamicAttributeHandler(attribute);
             }
+            
+            OnAttributesDeserialized();
             return;
         }
 
@@ -105,7 +110,12 @@ public partial class TreeNode
                 Attributes.Add(nodeAttribute);
             }
         }
+
+        OnInitializeDefaultDynamicAttributes();
     }
+
+    protected virtual void OnInitializeDefaultDynamicAttributes() { }
+    protected virtual void OnAttributesDeserialized() { }
 
     private void SyncAttributesToProperties()
     {
@@ -157,4 +167,78 @@ public partial class TreeNode
         }
         return false;
     }
+
+    #region Dynamic Attributes
+
+    public NodeAttribute AddDynamicAttribute(string name, string defaultValue = "")
+    {
+        var attr = NodeAttribute.CreateDynamic(name, defaultValue, this);
+        AttachDynamicAttributeHandler(attr);
+        Attributes.Add(attr);
+        return attr;
+    }
+
+    public NodeAttribute AddDynamicDependencyAttribute(string name, string defaultValue = "")
+    {
+        var attr = NodeAttribute.CreateDynamicDependency(name, defaultValue, this);
+        AttachDynamicAttributeHandler(attr);
+        Attributes.Add(attr);
+        return attr;
+    }
+
+    private void AttachDynamicAttributeHandler(NodeAttribute attr)
+    {
+        attr.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(NodeAttribute.Value))
+            {
+                OnPropertyChanged(nameof(ScreenString));
+            }
+        };
+    }
+
+    public bool RemoveDynamicAttribute(string name)
+    {
+        var attr = Attributes.FirstOrDefault(a => a.Name == name && a.IsDynamic);
+        if (attr != null)
+        {
+            Attributes.Remove(attr);
+            NotifyAttributesChanged();
+            return true;
+        }
+        return false;
+    }
+
+    public void RemoveDynamicAttributesFromIndex(int startIndex, int count = -1)
+    {
+        if (startIndex < 0 || startIndex >= Attributes.Count)
+            return;
+
+        int removeCount = count < 0 ? Attributes.Count - startIndex : count;
+        removeCount = Math.Min(removeCount, Attributes.Count - startIndex);
+
+        for (int i = 0; i < removeCount; i++)
+        {
+            if (startIndex < Attributes.Count && Attributes[startIndex].IsDynamic)
+                Attributes.RemoveAt(startIndex);
+            else
+                startIndex++; // Non-dynamic: skip
+        }
+        NotifyAttributesChanged();
+    }
+
+    private void NotifyAttributesChanged()
+    {
+        OnPropertyChanged(nameof(Attributes));
+        OnPropertyChanged(nameof(ScreenString));
+    }
+
+    public IEnumerable<NodeAttribute> GetDynamicAttributes()
+    {
+        return Attributes.Where(a => a.IsDynamic);
+    }
+
+    public int DynamicAttributeCount => Attributes.Count(a => a.IsDynamic);
+
+    #endregion
 }

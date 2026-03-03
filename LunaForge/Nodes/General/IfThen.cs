@@ -16,7 +16,7 @@ namespace LunaForge.Nodes.General;
 [RequireParent(typeof(IfNode)), Unique]
 public class IfThen : TreeNode, IIfChild
 {
-    public override string NodeName { get; set; } = "IfThen";
+    public override string NodeName { get; set; } = "Then";
 
     [JsonConstructor]
     public IfThen() : base() { }

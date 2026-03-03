@@ -11,19 +11,20 @@ using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 
 namespace LunaForge.Nodes.General;
 
-[Serializable, NodeIcon("if.png")]
-public class IfNode : TreeNode
+[Serializable, NodeIcon("elseif.png")]
+[RequireParent(typeof(IfNode))]
+public class IfElseIf : TreeNode, IIfChild
 {
-    public override string NodeName { get; set; } = "If";
+    public override string NodeName { get; set; } = "Else If";
 
     [JsonConstructor]
-    public IfNode() : base() { }
+    public IfElseIf() : base() { }
 
-    public IfNode(DocumentFileLFD workspace)
+    public IfElseIf(DocumentFileLFD workspace)
         : this(workspace, "")
     { }
 
-    public IfNode(DocumentFileLFD workspace, string name)
+    public IfElseIf(DocumentFileLFD workspace, string name)
         : base(workspace)
     { }
 
@@ -33,19 +34,15 @@ public class IfNode : TreeNode
 
     public override string ToString()
     {
-        return $"If ({Condition})";
+        return $"Else if {Condition}";
     }
 
     public override IEnumerable<string> ToLua(int spacing)
     {
         string sp = Indent(spacing);
-        var i = GetRealChildren().OrderBy((s) => (s as IIfChild)?.Priority ?? 0);
-        List<TreeNode> t = [.. i];
-
-        yield return sp + "if " + Condition;
-        foreach (var a in ToLua(spacing, i))
+        yield return sp + $"elseif {Condition} then\n";
+        foreach (var a in base.ToLua(spacing + 1))
             yield return a;
-        yield return sp + "end\n";
     }
 
     public override IEnumerable<Tuple<int, TreeNode>> GetLines()
@@ -53,13 +50,15 @@ public class IfNode : TreeNode
         yield return new Tuple<int, TreeNode>(1, this);
         foreach (Tuple<int, TreeNode> t in GetChildLines())
             yield return t;
-        yield return new Tuple<int, TreeNode>(1, this);
     }
 
     public override object Clone()
     {
-        IfNode n = new();
+        IfElseIf n = new();
         n.DeepCopyFrom(this);
         return n;
     }
+
+    [JsonIgnore]
+    public int Priority => 0;
 }

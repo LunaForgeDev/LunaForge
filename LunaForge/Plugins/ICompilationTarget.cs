@@ -28,5 +28,6 @@ public interface ICompilationTarget
 
     public string RootBaseContents { get; } // THlib example: "Include('THlib.lua')"
 
+    public void PreCompile(string compileDirectory); // Run before everything else in the compile step. (Example: create the root file)
     public void BeforeRun(); // Called just before running the lstg executable.
 }

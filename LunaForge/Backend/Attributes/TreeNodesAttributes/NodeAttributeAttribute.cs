@@ -10,4 +10,5 @@ public class NodeAttributeAttribute(string defaultValue = "", [CallerMemberName]
 {
     public string Name { get; set; } = name;
     public string DefaultValue { get; set; } = defaultValue;
+    public bool IsDependency { get; set; } = false;
 }

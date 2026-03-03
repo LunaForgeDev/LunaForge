@@ -345,7 +345,7 @@
                     <Separator/>
                     
                     <!-- Code Operations -->
-                    <Button ToolTip="View code in this node (Alt+C)">
+                    <Button Command="{Binding SelectedFile.SelectedNode.ViewCodeCommand}" ToolTip="View code in this node (Alt+C)">
                         <Image Source="/Images/viewcode.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
                     <Button ToolTip="Export Code">
@@ -451,14 +451,38 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button Command="{Binding DataContext.InsertNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}"
-                                                ToolTip="{Binding DisplayName}"
-                                                Padding="4">
-                                            <Image Source="{Binding IconPath}"
-                                                   Width="24" Height="24"
-                                                   Stretch="Fill"/>
-                                        </Button>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Command="{Binding DataContext.InsertNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip="{Binding DisplayName}"
+                                                    Padding="4">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <Image Source="{Binding Icon}"
+                                                       Width="24" Height="24"
+                                                       Stretch="Fill"/>
+                                            </Button>
+                                            <Separator>
+                                                <Separator.Style>
+                                                    <Style TargetType="Separator" BasedOn="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Setter Property="Margin" Value="5,0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Separator.Style>
+                                            </Separator>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

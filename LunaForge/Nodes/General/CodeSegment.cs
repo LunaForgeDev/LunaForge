@@ -15,7 +15,7 @@ namespace LunaForge.Nodes.General;
 [Serializable, NodeIcon("codesegment.png")]
 public partial class CodeSegment : TreeNode
 {
-    public override string NodeName { get; set; } = "CodeSegment";
+    public override string NodeName { get; set; } = "Code Segment";
 
     [JsonConstructor]
     public CodeSegment() : base() { }

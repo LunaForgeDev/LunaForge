@@ -30,6 +30,12 @@ public partial class NodeAttribute : ObservableObject
     
     [JsonIgnore]
     public string DefaultValue { get; set; } = string.Empty;
+
+    [JsonProperty]
+    public bool IsDependency { get; set; } = false;
+
+    [JsonProperty]
+    public bool IsDynamic { get; set; } = false;
     
     [ObservableProperty]
     [property: JsonProperty(nameof(Value))]
@@ -72,6 +78,31 @@ public partial class NodeAttribute : ObservableObject
         ParentNode = parent;
     }
 
+    public static NodeAttribute CreateDependency(string name, string defaultValue, TreeNode parent)
+    {
+        return new NodeAttribute(name, defaultValue, parent)
+        {
+            IsDependency = true
+        };
+    }
+
+    public static NodeAttribute CreateDynamic(string name, string defaultValue, TreeNode parent)
+    {
+        return new NodeAttribute(name, defaultValue, parent)
+        {
+            IsDynamic = true
+        };
+    }
+
+    public static NodeAttribute CreateDynamicDependency(string name, string defaultValue, TreeNode parent)
+    {
+        return new NodeAttribute(name, defaultValue, parent)
+        {
+            IsDependency = true,
+            IsDynamic = true
+        };
+    }
+
     partial void OnValueChanging(string value)
     {
         TempValue = _value;
@@ -80,6 +111,11 @@ public partial class NodeAttribute : ObservableObject
     partial void OnValueChanged(string value)
     {
         ParentNode?.RaiseAttributeChanged(this, new NodeAttributeChangedEventArgs(TempValue, value));
+        
+        if (IsDependency)
+        {
+            ParentNode?.RaiseDependencyAttributeChanged(this, new NodeAttributeChangedEventArgs(TempValue, value));
+        }
     }
 
     public void EditAttr(string newValue, bool force = false)
@@ -131,7 +167,8 @@ public partial class NodeAttribute : ObservableObject
         {
             Value = currentValue,
             EditorWindow = string.Empty,
-            PropertyName = property.Name
+            PropertyName = property.Name,
+            IsDependency = attributeDecorator.IsDependency
         };
 
         return nodeAttribute;

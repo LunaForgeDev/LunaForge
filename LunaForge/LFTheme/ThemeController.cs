@@ -39,11 +39,11 @@ public static class ThemeController
         set => Application.Current.Resources.MergedDictionaries[0] = value;
     }
 
-    private static ResourceDictionary ControlColours
+    /*private static ResourceDictionary ControlColours
     {
         get => Application.Current.Resources.MergedDictionaries[1];
         set => Application.Current.Resources.MergedDictionaries[1] = value;
-    }
+    }*/
 
     private static void RefreshControls()
     {
@@ -61,7 +61,7 @@ public static class ThemeController
 
         CurrentTheme = theme;
         ThemeDictionary = new() { Source = new Uri($"LFTheme/ColourDictionaries/{themeName}.xaml", UriKind.Relative) };
-        ControlColours = new() { Source = new Uri("LFTheme/ControlColours.xaml", UriKind.Relative) };
+        //ControlColours = new() { Source = new Uri("LFTheme/ControlColours.xaml", UriKind.Relative) };
         RefreshControls();
     }
 
