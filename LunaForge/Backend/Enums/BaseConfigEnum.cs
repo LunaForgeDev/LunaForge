@@ -22,4 +22,5 @@ public enum BaseConfigEnum
     [BaseConfig(ConfigSystemCategory.DefaultProject, "", true)] ProjectFilesOpenedRecently,
     [BaseConfig(ConfigSystemCategory.DefaultProject, "")] LuaSTGExecutablePath,
     [BaseConfig(ConfigSystemCategory.DefaultProject, "")] CompilationTarget,
+    [BaseConfig(ConfigSystemCategory.DefaultProject, false)] UsePlainFilesPackaging, // If false, compiler will create a zip instead of copying all files directly.
 }

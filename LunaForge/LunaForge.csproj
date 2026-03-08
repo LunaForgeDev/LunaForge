@@ -334,4 +334,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="LunaForge.Tools" />
+  </ItemGroup>
+
 </Project>

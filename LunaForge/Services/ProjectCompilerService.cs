@@ -5,8 +5,10 @@ using LunaForge.Plugins;
 using Newtonsoft.Json;
 using Serilog;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Windows;
 
@@ -17,11 +19,9 @@ public class ProjectCompilerService
     private static readonly ILogger Logger = CoreLogger.Create("Compile");
     private Project proj { get; set; }
 
-    private Dictionary<string, string> computedMD5 = []; // If the md5 of a file changed or was created, this will be put inside the file.
+    private ConcurrentDictionary<string, string> computedMD5 = []; // If the md5 of a file changed or was created, this will be put inside the file.
     private string MD5HashesFilePath => Path.Combine(proj.DotFolder, "hashes_cache.json");
-    private SemaphoreSlim semaphore = new(Environment.ProcessorCount);
-
-    private string outputFinalPath = ""; // TODO: Replace with luastg mod path
+    private string CompileCache => Path.Combine(proj.DotFolder, "compilecache");
 
     public ProjectCompilerService(Project _proj)
     {
@@ -33,6 +33,13 @@ public class ProjectCompilerService
         return await Compile(null);
     }
 
+    /*
+     * TODO:
+     * - See for compiling images in a different way since it would use a lot of space to copy images into the compile cache.
+     * - Allow selecting Compile Targets in the settings as well as project packing type (plain or zip)
+     * - Compile LFS
+     * - Gather all lua files as well as lfs and lfd
+     */
     public async Task<bool> Compile(ICompilationTarget? target = null)
     {
         Logger.Information($"============================ Starting Compilation");
@@ -40,37 +47,87 @@ public class ProjectCompilerService
         {
             string targetName = proj.ProjectConfig.Get<string>("CompilationTarget").Value;
             target = proj.PluginManager?.GetCompilationTarget(targetName);
-            Logger.Debug($"CompilationTarget found.");
+            if (target == null)
+            {
+                Logger.Error($"Cannot compile the project '{proj.Name}'. No target selected.");
+                MessageBox.Show("No compiliation target selected. See your project settings.", "Compilation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
         }
-        if (target == null)
-        {
-            Logger.Error($"Cannot compile the project '{proj.Name}'. No target selected.");
-            MessageBox.Show("No compiliation target selected. See your project settings.", "Compilation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        
+        Logger.Information($"Compilation target: '{target.TargetName}' building in '{target.BuildDirectory}'");
+
+        // -------------------------------------------- Step 1: Commit changes. Test for editor errors, and do other shit.
+        // If "main.lua" or "main.lfd" doesn't exist somewhere in the project, that's a fatal compiler error.
+        if (!CheckForEntryPoint())
             return false;
-        }
-        Logger.Debug($"Compilation target: '{target.TargetName}' building in '{target.BuildDirectory}'");
+        Directory.CreateDirectory(CompileCache);
 
-        // Step 0: Commit changes. Test for editor errors, and do other shit.
-        outputFinalPath = Path.Combine(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value, target.BuildDirectory);
-        Logger.Information($"Build path found: '{outputFinalPath}'");
+        // -------------------------------------------- Step 2: Call PreCompile on plugin target
+        target.PreCompile(CompileCache);
 
-        // Step 1: Collect everything
+        // -------------------------------------------- Step 3: Collect everything and separate lfd and lfs files
+        List<string> files = [];
+        if (!CollectFiles("*.*", ref files, proj.ProjectRoot))
+            return false;
+
+        // TODO: Collect all files, copy them except for lfd and lfs (and images?) and compile those in the cache.
+
         List<string> lfdFiles = [];
-        if (!CollectLFDFiles(ref lfdFiles))
+        List<string> lfsFiles = [];
+        if (!CollectFiles("*.lfd", ref lfdFiles, proj.ProjectRoot))
             return false;
-        Logger.Debug($"Found {lfdFiles.Count} lfd files");
+        if (!CollectFiles("*.lfs", ref lfsFiles, proj.ProjectRoot))
+            return false;
+        Logger.Information("Found {0} lfd files", lfdFiles.Count);
+        Logger.Information("Found {0} lfs files", lfsFiles.Count);
         computedMD5 = ReadMD5Hashes();
 
-        // Step 2: Compile everything (compile dependencies before?)
-        Directory.CreateDirectory(Path.Combine(proj.DotFolder, "compilecache"));
-        foreach (string file in lfdFiles)
+        // -------------------------------------------- Step 4: Compile everything (compile dependencies before?)
+        Directory.CreateDirectory(CompileCache);
+
+        ConcurrentBag<bool> lfdResults = [];
+        await Parallel.ForEachAsync(lfdFiles, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, async (file, ct) =>
         {
-            (bool, string) res = await CompileLFDFile(file);
+            Logger.Verbose("Compiling {0}...", file);
+            bool success = await CompileLFDFile(file);
+            Logger.Verbose("Compiling {0} {1}", file, success ? "SUCCESS" : "FAILED");
+            lfdResults.Add(success);
+        });
+
+        if (lfdResults.Any(r => !r))
+            return false;
+        Logger.Information("Compiled {0} lfd files", lfdResults.Count);
+
+        // -------------------------------------------- Step 5: Check if the editor must copy all files and folders or zip the contents and move the zip.
+        bool usePlainFiles = proj.ProjectConfig.Get<bool>("UsePlainFilesPackaging").Value;
+        if (usePlainFiles)
+        {
+            // Plain files/folders
+            Logger.Debug("Compiling to plain files...");
+            string output = Path.Combine(Path.GetDirectoryName(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value), target.BuildDirectory, proj.Name);
+            Directory.Copy(CompileCache, output);
+            Logger.Information("Mod folder created at {0}", output);
+        }
+        else
+        {
+            Logger.Debug("Compiling to zip...");
+            // Zip file
+            string output = Path.Combine(Path.GetDirectoryName(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value), target.BuildDirectory);
+            if (!Directory.Exists(output))
+            {
+                Logger.Error("Output directory doesn't exist. As a matter of null-security, it will not be created for you.");
+                Logger.Error("Output directory doesn't exist: {0}", output);
+                return false;
+            }
+            output = Path.Combine(output, $"{proj.Name}.zip");
+            if (File.Exists(output))
+                File.Delete(output); // ZipFile doesn't know how to overwrite files.
+            ZipFile.CreateFromDirectory(CompileCache, output);
+            Logger.Information("Zip mod created at {0}", output);
         }
 
-        // Step 3: ???
-
-        // Step ?: Put md5 hashes inside the dotfolder for next time.
+        // -------------------------------------------- Step 6: Put md5 hashes inside the dotfolder for next time.
         SaveMD5Hashes();
         Logger.Debug($"MD5 saved.");
 
@@ -79,41 +136,60 @@ public class ProjectCompilerService
         return true;
     }
 
-    private bool CollectLFDFiles(ref List<string> lfdFiles)
+    private bool CheckForEntryPoint()
+    {
+        string[] entryPoints = [.. Directory.GetFiles(proj.ProjectRoot, "main.*", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(".lunaforge"))
+            .Where(f => f.EndsWith("main.lfd", StringComparison.OrdinalIgnoreCase)
+                     || f.EndsWith("main.lua", StringComparison.OrdinalIgnoreCase))];
+
+        if (entryPoints.Length == 0)
+        {
+            Logger.Error("No entry point 'main.lfd' or 'main.lua' found in project '{0}'.", proj.Name);
+            return false;
+        }
+
+        Logger.Debug("Entry point found: '{0}'", entryPoints[0]);
+        return true;
+    }
+
+    private bool CollectFiles(string extension, ref List<string> files, string folder)
     {
         try
         {
-            string[] fileNames = Directory.GetFiles(proj.ProjectRoot, "*.lfd", SearchOption.AllDirectories);
-            lfdFiles.AddRange(fileNames.Where(f => !f.Contains(".lunaforge"))); // Ignore dotfolder just to be safe. (There shouldn't be any lfd file inside)
+            string[] fileNames = Directory.GetFiles(folder, extension, SearchOption.AllDirectories);
+            files.AddRange(fileNames.Where(f => !f.Contains(".lunaforge"))); // Ignore dotfolder since it contains metadata and cache.
             return true;
         }
         catch (Exception ex)
         {
-            Logger.Error($"Couldn't get lfd files. Reason:\n{ex}");
+            Logger.Error($"Couldn't get files. Reason:\n{ex}");
             return false;
         }
     }
 
-    private async Task<(bool, string)> CompileLFDFile(string lfdFilePath, bool showOnly = false)
+    private async Task<bool> CompileLFDFile(string lfdFilePath, bool showOnly = false)
     {
         try
         {
             using FileStream fs = new(lfdFilePath, FileMode.Open, FileAccess.Read);
             var md5 = System.Security.Cryptography.MD5.Create();
             string md5str = Encoding.Default.GetString(md5.ComputeHash(fs));
+            string relativePath = Path.GetRelativePath(proj.ProjectRoot, lfdFilePath);
+            string relativeLuaPath = Path.ChangeExtension(relativePath, ".lua");
+            string cachePath = Path.Combine(CompileCache, relativeLuaPath);
 
-            if (computedMD5.TryGetValue(lfdFilePath, out string? cachedMD5) && cachedMD5 == md5str)
-                return (true, "");
+            if (computedMD5.TryGetValue(lfdFilePath, out string? cachedMD5) && cachedMD5 == md5str && File.Exists(cachePath))
+                return true;
 
             DocumentFileLFD file = DocumentFileLFD.Load(lfdFilePath);
             if (file == null)
             {
                 Logger.Error($"Couldn't load lfd file '{lfdFilePath}' for compilation.");
-                return (false, "");
+                return false;
             }
-            string relativePath = Path.GetRelativePath(proj.ProjectRoot, lfdFilePath);
-            string relativeLuaPath = Path.ChangeExtension(relativePath, ".lua");
-            string cachePath = Path.Combine(proj.DotFolder, "compilecache", relativeLuaPath);
+            
+            Logger.Debug("Created lua from lfd at {0}", cachePath);
 
             StringBuilder sb = new();
 
@@ -125,7 +201,6 @@ public class ProjectCompilerService
                 foreach (var line in node.ToLua(0))
                     sb.Append(line);
 
-            md5.ComputeHash(fs);
             computedMD5[lfdFilePath] = md5str;
 
             if (!showOnly)
@@ -135,24 +210,30 @@ public class ProjectCompilerService
                 File.WriteAllText(cachePath, sb.ToString(), Encoding.UTF8);
             }
 
-            return (true, sb.ToString());
+            return true;
         }
         catch (Exception ex)
         {
             Logger.Error($"Couldn't compile file '{lfdFilePath}'. Reason:\n{ex}");
-            return (false, "");
+            return false;
         }
     }
 
-    private Dictionary<string, string> ReadMD5Hashes()
+    private async Task<bool> CompileLFSFile(string lfsFilePath, bool showOnly = false)
+    {
+        return false;
+    }
+
+    private ConcurrentDictionary<string, string> ReadMD5Hashes()
     {
         try
         {
-            if (!File.Exists(MD5HashesFilePath)) // stupid
+            if (!File.Exists(MD5HashesFilePath)) // Runa you absolute idiot, of course this was gonna cause issues if the file doesn't exist.
                 return [];
 
             string contents = File.ReadAllText(MD5HashesFilePath, Encoding.UTF8);
-            return JsonConvert.DeserializeObject<Dictionary<string, string>>(contents) ?? [];
+            var dict = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(contents);
+            return dict != null ? new(dict) : [];
         }
         catch (Exception ex)
         {

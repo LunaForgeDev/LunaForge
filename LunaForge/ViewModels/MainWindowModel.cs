@@ -482,7 +482,9 @@ public partial class MainWindowModel : ObservableObject
     {
         Task.Run(async () =>
         {
-            await Project.Compiler.Compile();
+            bool success = await Project.Compiler.Compile();
+            if (!success)
+                MessageBox.Show("Compile process failed. See the Editor Logs for errors.", "Compiler Error", MessageBoxButton.OK, MessageBoxImage.Error);
         });
     }
 

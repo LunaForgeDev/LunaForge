@@ -26,8 +26,6 @@ public interface ICompilationTarget
     public bool SupportStageDebug { get; } // THlib example: true, because debugger.lua exists
     public bool SupportSCDebug { get; } // THlib example: true, because scdebugger.lua exists.
 
-    public string RootBaseContents { get; } // THlib example: "Include('THlib.lua')"
-
     public void PreCompile(string compileDirectory); // Run before everything else in the compile step. (Example: create the root file)
     public void BeforeRun(); // Called just before running the lstg executable.
 }

@@ -60,11 +60,19 @@ public class THlibTarget : ICompilationTarget
     public string BuildDirectory { get; } = "mod/";
     public bool SupportStageDebug { get; } = true;
     public bool SupportSCDebug { get; } = true;
-    public string RootBaseContents { get; } = "Include('THlib.lua')";
 
+    /// <summary>
+    /// Ran before every compile step.
+    /// </summary>
+    /// <param name="compileDirectory">The cache directory</param>
     public void PreCompile(string compileDirectory)
     {
-
+        string path = Path.Combine(compileDirectory, "root.lua");
+        string contents = """
+            Include('THlib.lua')
+            Include('main.lua')
+            """;
+        File.WriteAllText(path, contents);
     }
 
     public void BeforeRun()
