@@ -9,6 +9,8 @@
     <UseWindowsForms>False</UseWindowsForms>
     <ApplicationIcon>Images\Icon.ico</ApplicationIcon>
     <PackageIcon>Icon.png</PackageIcon>
+	<EnableDefaultApplicationDefinition>true</EnableDefaultApplicationDefinition>
+	<StartupObject>LunaForge.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -104,11 +106,12 @@
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="McMaster.NETCore.Plugins" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Nodify" Version="7.1.0" />
+    <PackageReference Include="Nodify" Version="7.2.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.TextWriter" Version="3.0.0" />
-    <PackageReference Include="Tomlyn" Version="0.19.0" />
+    <PackageReference Include="Tomlyn" Version="1.1.1" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
   <ItemGroup>
