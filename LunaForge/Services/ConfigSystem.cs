@@ -209,7 +209,7 @@ public class ConfigSystem
             ((TomlTable)model[section])[dyn.Key] = dyn.Value;
         }
 
-        File.WriteAllText(filePath, Toml.FromModel(model));
+        File.WriteAllText(filePath, TomlSerializer.Serialize(model));
     }
 
     public static T Load<T>(string configPath) where T: ConfigSystem, new()
@@ -223,7 +223,7 @@ public class ConfigSystem
         {
             try
             {
-                var table = Toml.Parse(File.ReadAllText(configPath)).ToModel();
+                var table = TomlSerializer.Deserialize<TomlTable>(File.ReadAllText(configPath));
 
                 foreach (var (sectionKey, sectionValue) in table)
                 {
