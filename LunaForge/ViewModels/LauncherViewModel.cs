@@ -21,6 +21,7 @@ public partial class LauncherViewModel : ObservableObject
 
     public LauncherViewModel()
     {
+        LuaSTGInstancesService.Initialize();
         LoadRecentProjects();
     }
 

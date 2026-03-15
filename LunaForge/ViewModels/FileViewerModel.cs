@@ -15,7 +15,7 @@ using MessageBox = System.Windows.MessageBox;
 
 namespace LunaForge.ViewModels;
 
-public partial class FileViewerModel : ObservableObject, IDisposable
+public partial class FileViewerModel : ObservableObject, IDisposable, ITraceSource
 {
     private static ILogger Logger = CoreLogger.Create("FileViewer");
 
@@ -25,6 +25,38 @@ public partial class FileViewerModel : ObservableObject, IDisposable
     private FileSystemWatcher watcher;
     private MainWindowModel mainWindowModel;
     private bool isDisposed;
+
+    #region Trace Source Impl
+
+    public string TraceSourceName => "FileSystem";
+
+    public TraceHandle CommitTrace(TraceSeverity severity, string message, string? file = null, int? line = null)
+        => TraceService.Instance.Commit(severity, message, this, file, line);
+
+    #endregion
+    #region Traces
+
+    private TraceHandle? missingMainFileTrace;
+
+    private void CheckMainFile()
+    {
+        string[] entryPoints = [.. Directory.GetFiles(MainWindowModel.Project!.ProjectRoot, "main.*", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(".lunaforge"))
+            .Where(f => f.EndsWith("main.lfd", StringComparison.OrdinalIgnoreCase)
+                     || f.EndsWith("main.lua", StringComparison.OrdinalIgnoreCase))];
+
+        if (entryPoints.Length == 0)
+        {
+            missingMainFileTrace ??= CommitTrace(TraceSeverity.Error, "Missing 'main.lua' or 'main.lfd' file in project structure.");
+        }
+        else
+        {
+            missingMainFileTrace?.Resolve();
+            missingMainFileTrace = null;
+        }
+    }
+
+    #endregion
 
     public FileViewerModel()
     {
@@ -115,6 +147,7 @@ public partial class FileViewerModel : ObservableObject, IDisposable
 
                     parentItem.Children.Insert(insertIndex, newItem);
                     Logger.Information($"File system item created: {e.FullPath}");
+                    CheckMainFile();
                 }
             }
             catch (Exception ex)
@@ -142,6 +175,7 @@ public partial class FileViewerModel : ObservableObject, IDisposable
                         Logger.Information($"File system item deleted: {e.FullPath}");
                     }
                 }
+                CheckMainFile();
             }
             catch (Exception ex)
             {
@@ -154,10 +188,13 @@ public partial class FileViewerModel : ObservableObject, IDisposable
     {
         SafeDispatcherInvoke(() =>
         {
+            if (e.FullPath.Contains(".lunaforge"))
+                return;
             try
             {
                 //TODO: Change metadata
                 Logger.Debug($"File system item changed: {e.FullPath}");
+                CheckMainFile();
             }
             catch (Exception ex)
             {
@@ -191,6 +228,7 @@ public partial class FileViewerModel : ObservableObject, IDisposable
                         Logger.Information($"File system item renamed: {e.OldFullPath} -> {e.FullPath}");
                     }
                 }
+                CheckMainFile();
             }
             catch (Exception ex)
             {

@@ -38,6 +38,11 @@ public partial class CreateProjectViewModel : ObservableObject
     [ObservableProperty]
     private bool isLoadingTemplates = false;
 
+    [ObservableProperty]
+    private ObservableCollection<string> instances = []; // TODO: Fill this with actual instances from config
+    [ObservableProperty]
+    private string? selectedInstance;
+
     public event Action<string>? ProjectCreated;
     public event Action? RequestClose;
 
@@ -247,10 +252,16 @@ public partial class CreateProjectViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void GoBack()
+    private void Ok()
     {
-        if (CurrentPage > 0)
-            CurrentPage--;
+        //TODO: Create project based on selected template and details
+    }
+
+    [RelayCommand]
+    private void OpenInstanceManager()
+    {
+        var window = new Views.LuaSTGInstancesWindow();
+        window.ShowDialog();
     }
 
     [RelayCommand]

@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace LunaForge.Models.TreeNodes;
 
-public abstract partial class TreeNode : ObservableObject, ICloneable
+public abstract partial class TreeNode : ObservableObject, ICloneable, ITraceSource
 {
     protected TreeNode()
     {
@@ -130,7 +130,26 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
         }
     }
 
-    public abstract IEnumerable<Tuple<int, TreeNode>> GetLines();
+    protected static int CountLines(string text)
+    {
+        int count = 1;
+        foreach (char c in text)
+            if (c == '\n')
+                count++;
+        return count;
+    }
+
+    public virtual IEnumerable<Tuple<int, TreeNode>> GetLines()
+    {
+        int total = 0;
+        foreach (string chunk in ToLua(0))
+            foreach (char c in chunk)
+                if (c == '\n')
+                    total++;
+        if (total == 0)
+            total = 1;
+        yield return new Tuple<int, TreeNode>(total, this);
+    }
 
     protected IEnumerable<Tuple<int, TreeNode>> GetChildLines()
     {
@@ -145,6 +164,14 @@ public abstract partial class TreeNode : ObservableObject, ICloneable
         int repeatTimes = EditorConfig.Default.Get<int>("CodeIndentSpaces").Value;
         return new string(' ', spacing * repeatTimes);
     }
+
+    #endregion
+    #region Trace Source Impl
+
+    public string TraceSourceName => NodeName;
+
+    public TraceHandle CommitTrace(TraceSeverity severity, string message, string? file = null, int? line = null)
+        => TraceService.Instance.Commit(severity, message, this, file, line);
 
     #endregion
 }

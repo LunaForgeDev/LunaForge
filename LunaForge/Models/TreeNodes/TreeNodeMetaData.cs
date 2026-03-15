@@ -32,6 +32,8 @@ public partial class TreeNodeMetaData() : ObservableObject
     public Type[][] RequireAncestor = [];
     [ObservableProperty]
     public bool unique = false;
+    [ObservableProperty]
+    public bool cannotBeDragDropped = false;
 
     public static TreeNodeMetaData Process(TreeNode node)
     {
@@ -46,7 +48,8 @@ public partial class TreeNodeMetaData() : ObservableObject
             CannotBeBanned = t.IsDefined(typeof(CannotBanAttribute), false),
             Icon = LoadIconFromAssembly(t.Assembly, iconPath),
             RequireParent = GetTypes(t.GetCustomAttribute<RequireParentAttribute>()?.ParentType ?? []),
-            Unique = t.IsDefined(typeof(UniqueAttribute), false)
+            Unique = t.IsDefined(typeof(UniqueAttribute), false),
+            CannotBeDragDropped = t.IsDefined(typeof(CannotDragDropAttribute), false)
         };
         var attrs = t.GetCustomAttributes<RequireAncestorAttribute>();
         meta.RequireAncestor = null;

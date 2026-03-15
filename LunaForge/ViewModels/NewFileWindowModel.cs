@@ -40,6 +40,9 @@ public partial class NewFileWindowModel : ObservableObject
     [ObservableProperty]
     private FileType selectedFileType = FileType.Lfd;
 
+    [ObservableProperty]
+    private ObservableCollection<string> luaSTGInstances = [];
+
     public ObservableCollection<DefS> Templates { get; } = [];
     public ObservableCollection<DefS> FilteredTemplates { get; } = [];
 
@@ -52,6 +55,7 @@ public partial class NewFileWindowModel : ObservableObject
         this.owner = owner;
         LoadTemplates();
         UpdateFilteredTemplates();
+        GetLuaSTGInstances();
         FilePath = MainWindowModel.Project.ProjectRoot;
     }
 
@@ -60,7 +64,21 @@ public partial class NewFileWindowModel : ObservableObject
         this.owner = owner;
         LoadTemplates();
         UpdateFilteredTemplates();
+        GetLuaSTGInstances();
         FilePath = string.IsNullOrEmpty(preFilledPath) ? MainWindowModel.Project.ProjectRoot : preFilledPath;
+    }
+    
+    /// <summary>
+    /// TODO: Move that to the Project Creator window, not the file creator window.
+    /// </summary>
+    private void GetLuaSTGInstances()
+    {
+        string instancesConfig = EditorConfig.Default.Get<string>("LuaSTGInstances").Value;
+        if (!string.IsNullOrEmpty(instancesConfig))
+        {
+            var instances = instancesConfig.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s));
+            LuaSTGInstances = new ObservableCollection<string>(instances);
+        }
     }
 
     private void LoadTemplates()
@@ -223,6 +241,12 @@ public partial class NewFileWindowModel : ObservableObject
         {
             FilePath = dialog.FolderName;
         }
+    }
+
+    [RelayCommand]
+    public void ManageLuaSTGInstances()
+    {
+
     }
 }
 

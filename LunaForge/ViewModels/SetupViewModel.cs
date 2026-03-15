@@ -4,6 +4,7 @@ using LunaForge.Models;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,7 @@ namespace LunaForge.ViewModels;
 public partial class SetupViewModel : ObservableObject
 {
     [ObservableProperty]
-    public int currentPage = 0;
+    public int currentPage = 3;
 
     [ObservableProperty]
     public string projectsFolder = DetermineDefaultProjectsPath();
@@ -25,7 +26,10 @@ public partial class SetupViewModel : ObservableObject
     [ObservableProperty]
     public string pageTitle = "Welcome to LunaForge";
 
-    private const int PageCount = 4;
+    [ObservableProperty]
+    public ObservableCollection<string> luaSTGInstances = [];
+
+    private const int PageCount = 5;
 
     public event Action? SetupCompleted;
 
@@ -84,6 +88,30 @@ public partial class SetupViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public void AddLuaSTGInstance()
+    {
+        OpenFileDialog dialog = new()
+        {
+            Title = "Select LuaSTG Executable",
+            Filter = "Executables (*.exe)|*.exe",
+            CheckFileExists = true,
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            string path = dialog.FileName;
+            if (!LuaSTGInstances.Contains(path))
+                LuaSTGInstances.Add(path);
+        }
+    }
+
+    [RelayCommand]
+    public void RemoveLuaSTGInstance(string path)
+    {
+        LuaSTGInstances.Remove(path);
+    }
+
     private async Task FinishSetup()
     {
         EditorConfig config = EditorConfig.Default;
@@ -92,6 +120,7 @@ public partial class SetupViewModel : ObservableObject
 
         config.SetOrCreate("ProjectsFolder", ProjectsFolder);
         config.SetOrCreate("ProjectAuthor", ProjectAuthor);
+        config.SetOrCreate("LuaSTGInstances", string.Join(";", LuaSTGInstances));
         config.SetOrCreate("SetupDone", true);
 
         config.CommitAll();
@@ -108,7 +137,8 @@ public partial class SetupViewModel : ObservableObject
             0 => "Welcome to LunaForge",
             1 => "Step 1: Setting a projects folder",
             2 => "Step 2: Setting up a project author",
-            3 => "Done!",
+            3 => "Step 3: Setup your LuaSTG instances",
+            4 => "Done!",
             _ => "Getting Started"
         };
     }

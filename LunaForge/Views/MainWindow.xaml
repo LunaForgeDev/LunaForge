@@ -24,6 +24,7 @@
         <tools:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <tools:BannedToStrikeThrough x:Key="banned2Strike"/>
         <tools:BoolToOpacity x:Key="banned2Opacity"/>
+        <tools:TraceSeverityConverter x:Key="TraceSeverityConverter"/>
 
         <Style TargetType="RadioButton" x:Key="CustomRadioButton">
             <Setter Property="Template">
@@ -54,6 +55,81 @@
             </Setter>
         </Style>
 
+        <!--#region DottedTreeViewItem -->
+
+        <SolidColorBrush x:Key="TreeViewItem.Selected.Inactive.Background" Color="Transparent"/>
+        <SolidColorBrush x:Key="TreeViewItem.Selected.Inactive.Border" Color="#FF000000"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Checked.Fill" Color="#FF595959"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Checked.Stroke" Color="#FF262626"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Stroke" Color="#FF000000"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Fill" Color="#FFCCEEFB"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Checked.Stroke" Color="#FF000000"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Checked.Fill" Color="#FFCCEEFB"/>
+        <PathGeometry x:Key="TreeArrow" Figures="M0,0 L0,6 L6,0 z"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Fill" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Stroke" Color="#FF818181"/>
+        <Style x:Key="ExpandCollapseToggleStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border Background="Transparent" Height="16" Padding="5,5,5,5" Width="16">
+                            <Path x:Name="ExpandPath" Data="{StaticResource TreeArrow}"
+                                  Fill="{StaticResource TreeViewItem.TreeArrow.Static.Fill}"
+                                  Stroke="{StaticResource TreeViewItem.TreeArrow.Static.Stroke}">
+                                <Path.RenderTransform>
+                                    <RotateTransform Angle="135" CenterY="3" CenterX="3"/>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="RenderTransform" TargetName="ExpandPath">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="180" CenterY="3" CenterX="3"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Fill}"/>
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Checked.Stroke}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Fill}"/>
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Checked.Stroke}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Checked.Stroke}"/>
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Fill}"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TreeViewItemFocusVisual">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border>
+                            <Rectangle Margin="0,0,0,0"
+                                       StrokeThickness="5"
+                                       Stroke="Black"
+                                       StrokeDashArray="1 2"
+                                       Opacity="0"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!--#endregion DottedTreeViewItem -->
+
         <!-- Lua Editor -->
         <DataTemplate x:Key="LuaEditorTemplate">
             <controls:LuaTextEditor
@@ -82,15 +158,19 @@
                             <TextBlock VerticalAlignment="Center" Text="{Binding ScreenString}"
                                        TextDecorations="{Binding IsBanned, Converter={StaticResource banned2Strike}}"/>
                             <StackPanel.ContextMenu>
-                                <ContextMenu
-                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext,
+                                        RelativeSource={RelativeSource Self}}">
                                     <MenuItem Header="_Edit..."/>
                                     <Separator/>
-                                    <MenuItem Header="_Cut" Command="{Binding CutCommand}"/>
-                                    <MenuItem Header="_Copy" Command="{Binding CopyCommand}"/>
-                                    <MenuItem Header="_Paste" Command="{Binding PasteCommand}"/>
+                                    <MenuItem Header="_Cut" Command="{Binding CutCommand}"
+                                              InputGestureText="Ctrl+X"/>
+                                    <MenuItem Header="_Copy" Command="{Binding CopyCommand}"
+                                              InputGestureText="Ctrl+C"/>
+                                    <MenuItem Header="_Paste" Command="{Binding PasteCommand}"
+                                              InputGestureText="Ctrl+V"/>
                                     <Separator/>
-                                    <MenuItem Header="_Delete" Command="{Binding DeleteCommand}"/>
+                                    <MenuItem Header="_Delete" Command="{Binding DeleteCommand}"
+                                              InputGestureText="Delete"/>
                                     <Separator/>
                                     <MenuItem Header="_Fold Tree"/>
                                     <MenuItem Header="_Unfold Tree"/>
@@ -98,7 +178,8 @@
                                     <MenuItem Header="_Ban" Command="{Binding SwitchBanCommand}"
                                               IsChecked="{Binding IsBanned}"/>
                                     <Separator/>
-                                    <MenuItem Header="_View Code" Command="{Binding ViewCodeCommand}"/>
+                                    <MenuItem Header="_View Code" Command="{Binding ViewCodeCommand}"
+                                              InputGestureText="Alt+C"/>
                                     <Separator/>
                                     <MenuItem Header="_Save Preset..." Command="{Binding SaveAsPresetCommand}"/>
                                     <MenuItem Header="_Insert Preset Here" Command="{Binding InsertPresetCommand}"/>
@@ -109,10 +190,133 @@
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
                 <TreeView.ItemContainerStyle>
-                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                    <EventSetter Event="Selected" Handler="TreeNode_Selected"/>
+                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <Setter Property="AllowDrop" Value="True"/>
+                        <EventSetter Event="Selected" Handler="TreeNode_Selected"/>
+                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="TreeNode_PreviewMouseLeftButtonDown"/>
+                        <EventSetter Event="PreviewMouseMove" Handler="TreeNode_PreviewMouseMove"/>
+                        <EventSetter Event="DragOver" Handler="TreeNode_DragOver"/>
+                        <EventSetter Event="Drop" Handler="TreeNode_Drop"/>
+                        <EventSetter Event="DragLeave" Handler="TreeNode_DragLeave"/>
+
+                        <!--#region DottedTreeViewItem -->
+
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="HorizontalContentAlignment"
+                                Value="{Binding Path=HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="VerticalContentAlignment"
+                                Value="{Binding Path=VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="Padding" Value="1,0,0,0"/>
+                        <Setter Property="FocusVisualStyle" Value="{StaticResource TreeViewItemFocusVisual}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition MinWidth="19" Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+
+                                        <Rectangle x:Name="HorLn" Height="1" VerticalAlignment="Top" StrokeDashArray="4 4"
+                                                   HorizontalAlignment="Stretch" Stroke="#8888" Margin="9,9,0,0"
+                                                   SnapsToDevicePixels="True"/>
+                                        <Rectangle x:Name="VerLn" Width="1" VerticalAlignment="Stretch" StrokeDashArray="4 4"
+                                                   HorizontalAlignment="Center" Stroke="#8888" Grid.RowSpan="2"
+                                                   SnapsToDevicePixels="True"/>
+
+                                        <ToggleButton x:Name="Expander"
+                                                      Style="{StaticResource ExpandCollapseToggleStyle}"
+                                                      IsChecked="{Binding Path=IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      ClickMode="Press"/>
+                                        <Border Name="Bd"
+                                                Grid.Column="1"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter x:Name="PART_Header"
+                                                              ContentSource="Header"
+                                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                        </Border>
+                                        <ItemsPresenter x:Name="ItemsHost"
+                                                        Grid.Row="1"
+                                                        Grid.Column="1"
+                                                        Grid.ColumnSpan="2"/>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsExpanded"
+                                                 Value="False">
+                                            <Setter TargetName="ItemsHost"
+                                                    Property="Visibility"
+                                                    Value="Collapsed"/>
+                                        </Trigger>
+                                        <Trigger Property="HasItems"
+                                                 Value="False">
+                                            <Setter TargetName="Expander"
+                                                    Property="Visibility"
+                                                    Value="Hidden"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="HasHeader"
+                                                           Value="False"/>
+                                                <Condition Property="Width"
+                                                           Value="Auto"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="PART_Header"
+                                                    Property="MinWidth"
+                                                    Value="75"/>
+                                        </MultiTrigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="HasHeader"
+                                                           Value="False"/>
+                                                <Condition Property="Height"
+                                                           Value="Auto"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="PART_Header"
+                                                    Property="MinHeight"
+                                                    Value="19"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="IsSelected"
+                                                 Value="True">
+                                            <Setter TargetName="Bd"
+                                                    Property="Background"
+                                                    Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected"
+                                                           Value="True"/>
+                                                <Condition Property="IsSelectionActive"
+                                                           Value="False"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="Bd"
+                                                    Property="Background"
+                                                    Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}}"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="IsEnabled"
+                                                 Value="False">
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+
+                        <!--#endregion DottedTreeViewItem -->
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
@@ -191,6 +395,7 @@
         <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyCommand}"/>
         <KeyBinding Key="X" Modifiers="Ctrl" Command="{Binding CutCommand}"/>
         <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteCommand}"/>
+        <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding GoToLineCommand}"/>
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding AddNodeCommand}"/>
         <KeyBinding Key="Delete" Command="{Binding SelectedFile.SelectedNode.DeleteCommand}"/>
         <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding SwitchInsertModeCommand}" CommandParameter="Ancestor"/>
@@ -325,7 +530,8 @@
                 <MenuItem Header="_Help">
                     <MenuItem Header="_About" Command="{Binding OpenAboutCommand}"/>
                     <MenuItem Header="_Documentation"/>
-                    <MenuItem Header="_Redo Initial Setup"/>
+                    <MenuItem Header="_Redo Initial Setup" />
+                    <MenuItem Header="_Check for Updates" Command="{Binding CheckForUpdatesCommand}"/>
                 </MenuItem>
             </Menu>
         </Border>
@@ -394,9 +600,9 @@
                     </Button>
 
                     <Separator/>
-
-                    <TextBox Width="40"/>
-                    <Button ToolTip="Go To Line...">
+                    
+                    <Button ToolTip="Go To Line... (Ctrl+G)"
+                            Command="{Binding GoToLineCommand}">
                         <Image Source="/Images/find.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
 
@@ -580,10 +786,10 @@
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
                 <TreeView.ItemContainerStyle>
-                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                    <EventSetter Event="PreviewMouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
-                    <EventSetter Event="Expanded" Handler="TreeViewItem_Expanded"/>
+                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        <EventSetter Event="PreviewMouseDoubleClick" Handler="TreeViewItem_MouseDoubleClick"/>
+                        <EventSetter Event="Expanded" Handler="TreeViewItem_Expanded"/>
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
@@ -638,21 +844,69 @@
                         <ColumnDefinition Width="*" MinWidth="50"/>
                     </Grid.ColumnDefinitions>
                     <TabControl Grid.Column="0">
-                        <TabItem Header="Traces">
-                            <DataGrid VerticalScrollBarVisibility="Visible" AutoGenerateColumns="False"
-                                      IsReadOnly="True" CanUserAddRows="False">
-                                <DataGrid.Columns>
-                                    <DataGridTemplateColumn CanUserResize="False">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Image Height="12" Width="12" Stretch="Fill"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTextColumn Width="400" Header="Message"/>
-                                    <DataGridTextColumn Width="100" Header="Source"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
+                        <TabItem>
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Traces" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <Border Background="#33E74C3C" CornerRadius="3" Padding="4,1" Margin="0,0,3,0"
+                                            Visibility="{Binding ErrorCount, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="{Binding ErrorCount}" FontSize="10" FontWeight="Bold"
+                                                   Foreground="#E74C3C" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Border Background="#33F39C12" CornerRadius="3" Padding="4,1" Margin="0,0,3,0"
+                                            Visibility="{Binding WarningCount, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <TextBlock Text="{Binding WarningCount}" FontSize="10" FontWeight="Bold"
+                                                   Foreground="#F39C12" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </TabItem.Header>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Height="26" Orientation="Horizontal">
+                                    <ToggleButton IsChecked="{Binding ShowErrors}" ToolTip="Toggle Errors" Padding="4,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="/Images/Error.png" Width="12" Height="12" Stretch="Fill"/>
+                                            <TextBlock Text="{Binding ErrorCount}" Margin="3,0,0,0" Foreground="#E74C3C" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                    <ToggleButton IsChecked="{Binding ShowWarnings}" ToolTip="Toggle Warnings" Padding="4,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="/Images/Warning.png" Width="12" Height="12" Stretch="Fill"/>
+                                            <TextBlock Text="{Binding WarningCount}" Margin="3,0,0,0" Foreground="#F39C12" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                    <ToggleButton IsChecked="{Binding ShowInformation}" ToolTip="Toggle Information" Padding="4,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="/Images/Info.png" Width="12" Height="12" Stretch="Fill"/>
+                                            <TextBlock Text="{Binding InformationCount}" Margin="3,0,0,0"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                </StackPanel>
+                                <DataGrid ItemsSource="{Binding FilteredTraceEntries}"
+                                          VerticalScrollBarVisibility="Visible"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          CanUserAddRows="False"
+                                          GridLinesVisibility="None"
+                                          HeadersVisibility="Column"
+                                          SelectionUnit="FullRow">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="20" CanUserResize="False" CanUserSort="True" SortMemberPath="Severity">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Image Height="12" Width="12" Stretch="Fill"
+                                                           Source="{Binding Severity, Converter={StaticResource TraceSeverityConverter}}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Width="*" Header="Message"
+                                                            Binding="{Binding Message}"/>
+                                        <DataGridTextColumn Width="120" Header="Source"
+                                                            Binding="{Binding Source.TraceSourceName, FallbackValue='—'}"/>
+                                        <DataGridTextColumn Width="60" Header="Line"
+                                                            Binding="{Binding Line, FallbackValue='—'}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
                         </TabItem>
 
                     </TabControl>
@@ -683,6 +937,7 @@
                           CanUserResizeRows="False" CanUserAddRows="False"
                           VerticalScrollBarVisibility="Visible"
                           CanUserDeleteRows="False"
+                          EnableRowVirtualization="False"
                           ItemsSource="{Binding SelectedFile.SelectedNode.Attributes}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Attributes"
@@ -713,9 +968,10 @@
                         <DataGridTemplateColumn CanUserResize="False" IsReadOnly="True">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Content="..." Width="25">
-
-                                    </Button>
+                                    <Button Content="..."
+                                            Width="25"
+                                            IsEnabled="{Binding HasEditor}"
+                                            Click="OnEditAttributeClick"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

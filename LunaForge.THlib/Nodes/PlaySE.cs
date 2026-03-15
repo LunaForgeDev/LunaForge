@@ -59,11 +59,6 @@ public class PlaySE : TreeNode
         return n;
     }
 
-    public override IEnumerable<Tuple<int, TreeNode>> GetLines()
-    {
-        yield return new(1, this);
-    }
-
     public override IEnumerable<string> ToLua(int spacing)
     {
         string sp = Indent(spacing);

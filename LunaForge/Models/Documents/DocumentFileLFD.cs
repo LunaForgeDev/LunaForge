@@ -1,6 +1,7 @@
 ﻿using LunaForge.Backend.EditorCommands;
 using LunaForge.Helpers;
 using LunaForge.Nodes.General;
+using LunaForge.Services;
 using LunaForge.ViewModels;
 using Newtonsoft.Json;
 using System;
@@ -26,6 +27,9 @@ public partial class DocumentFileLFD : DocumentFile
 
     [JsonIgnore]
     public bool IsLoading { get; private set; } // Only for preventing symbol index updates during load
+
+    [JsonIgnore]
+    public LinesMapService LineMap { get; } = new();
 
     public DocumentFileLFD() : this(string.Empty)
     { }
@@ -201,5 +205,21 @@ public partial class DocumentFileLFD : DocumentFile
             Logger.Error($"Failed to insert node. Reason:\n{ex}");
             return false;
         }
+    }
+
+    public void RebuildLineMap()
+    {
+        LineMap.Build(this);
+    }
+
+    public bool GoToLuaLine(int lineNumber)
+    {
+        RebuildLineMap();
+        TreeNode? target = LineMap.FindForLine(lineNumber);
+        if (target == null)
+            return false;
+
+        RevealTreeNode(target);
+        return true;
     }
 }

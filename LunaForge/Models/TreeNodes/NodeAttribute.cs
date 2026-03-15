@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using LunaForge.Backend.Attributes.TreeNodesAttributes;
+using LunaForge.EditWindows;
+using System.Windows;
 
 namespace LunaForge.Models.TreeNodes;
 
@@ -46,6 +48,9 @@ public partial class NodeAttribute : ObservableObject
 
     [JsonIgnore]
     public TreeNode? ParentNode { get; set; }
+
+    [JsonIgnore]
+    public bool HasEditor => !string.IsNullOrEmpty(EditorWindow) && EditWindowRegistry.Instance.HasEditor(EditorWindow);
 
     public NodeAttribute()
     {
@@ -145,6 +150,20 @@ public partial class NodeAttribute : ObservableObject
         Value = DefaultValue;
     }
 
+    public bool OpenEditor(Window? owner = null)
+    {
+        if (string.IsNullOrEmpty(EditorWindow))
+            return false;
+
+        var result = EditWindowRegistry.Instance.ShowDialog(EditorWindow, Value, this, owner);
+        if (result != null)
+        {
+            ChangeValueWithCommand(result);
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// Creates a NodeAttribute from a property decorated with [NodeAttribute]
     /// </summary>
@@ -154,7 +173,7 @@ public partial class NodeAttribute : ObservableObject
     public static NodeAttribute? CreateFromProperty(PropertyInfo property, TreeNode parentNode)
     {
         var attributeDecorator = property.GetCustomAttribute<NodeAttributeAttribute>();
-        
+
         if (attributeDecorator == null)
             return null;
 
@@ -166,7 +185,7 @@ public partial class NodeAttribute : ObservableObject
         )
         {
             Value = currentValue,
-            EditorWindow = string.Empty,
+            EditorWindow = attributeDecorator.EditorWindow,
             PropertyName = property.Name,
             IsDependency = attributeDecorator.IsDependency
         };

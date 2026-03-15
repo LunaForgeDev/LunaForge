@@ -23,6 +23,7 @@ This is a list of features I want to have in the first alpha release of LunaForg
 - [ ] Object Indexer (half-implemented)
 - [X] AddNode helper window
 - [ ] Presets (save and insert)
+- [ ] Edit Windows
 
 ## Beta release roadmap
 - [ ] Plugin store (in-editor and website)

@@ -32,6 +32,10 @@ public class FolderBlue : TreeNode
     [NodeAttribute("Folder")]
     public string Name { get; set; }
 
+    [JsonIgnore]
+    [NodeAttribute("self", EditorWindow = "targetSelection")]
+    public string TestAttr { get; set; } = "self";
+
     public override string ToString()
     {
         return $"==[ {Name} ]==";

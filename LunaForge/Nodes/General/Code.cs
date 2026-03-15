@@ -43,16 +43,6 @@ public partial class Code : TreeNode
         yield return sp + r.Replace(CodeContent, nsp) + "\n";
     }
 
-    public override IEnumerable<Tuple<int, TreeNode>> GetLines()
-    {
-        string s = CodeContent;
-        int i = 1;
-        foreach (char c in s)
-            if (c == '\n')
-                i++;
-        yield return new Tuple<int, TreeNode>(i, this);
-    }
-
     public override string ToString()
     {
         return CodeContent;

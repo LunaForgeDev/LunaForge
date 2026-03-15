@@ -222,9 +222,78 @@
                                        Foreground="#999"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
-
-                        <!-- Page 3: Done -->
+                        
+                        <!-- Page 3: LuaSTG instances -->
                         <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=3}">
+                            <TextBlock Text="Add your LuaSTG installations"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#333"
+                                       Margin="0,0,0,20"/>
+                            <TextBlock Text="Select the executable of each LuaSTG branch you have installed."
+                                       FontSize="12"
+                                       Foreground="#666"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock Text="Note: You can manage and install new LuaSTG branches and libraries later in the editor options."
+                                       FontSize="12"
+                                       Foreground="#666"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8"/>
+
+                            <Border BorderBrush="#E0E0E0"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Margin="0,0,0,8"
+                                    MinHeight="120"
+                                    MaxHeight="200">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding LuaSTGInstances}"
+                                                  Padding="8">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding}"
+                                                               FontSize="12"
+                                                               Foreground="#333"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding}"/>
+                                                    <Button Grid.Column="1"
+                                                            Content="X"
+                                                            Command="{Binding DataContext.RemoveLuaSTGInstanceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"
+                                                            Width="24"
+                                                            Height="24"
+                                                            Margin="8,0,0,0"
+                                                            Padding="0"
+                                                            FontSize="12"
+                                                            Foreground="#999"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Cursor="Hand"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+
+                            <Button Content="+ Add LuaSTG Instance"
+                                    Command="{Binding AddLuaSTGInstanceCommand}"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,0,20"
+                                    Padding="16,8"/>
+                        </StackPanel>
+
+                        <!-- Page 4: Done -->
+                        <StackPanel Visibility="{Binding CurrentPage, Converter={StaticResource Int32ToVisibilityConverter}, ConverterParameter=4}">
                             <TextBlock Text="You're all set!"
                                        FontSize="24"
                                        FontWeight="Bold"
@@ -309,12 +378,25 @@
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
-                            <Ellipse Width="8" Height="8">
+                            <Ellipse Width="8" Height="8" 
+                                     Margin="0,0,8,0">
                                 <Ellipse.Style>
                                     <Style TargetType="Ellipse">
                                         <Setter Property="Fill" Value="#DDD"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding CurrentPage}" Value="3">
+                                                <Setter Property="Fill" Value="#0078D4"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <Ellipse Width="8" Height="8">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#DDD"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentPage}" Value="4">
                                                 <Setter Property="Fill" Value="#0078D4"/>
                                             </DataTrigger>
                                         </Style.Triggers>

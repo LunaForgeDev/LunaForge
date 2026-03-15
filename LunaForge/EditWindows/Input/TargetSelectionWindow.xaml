@@ -1,0 +1,25 @@
+﻿<editWindows:EditWindow x:Class="LunaForge.EditWindows.Input.TargetSelectionWindow"
+                        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                        xmlns:editWindows="clr-namespace:LunaForge.EditWindows"
+                        mc:Ignorable="d"
+                        Title="Target Selection"
+                        Height="220"
+                        Width="280">
+    <StackPanel Margin="10">
+        <TextBlock Text="Select target:" Margin="0,0,0,5"/>
+        <ListBox x:Name="TargetList" Height="110" SelectionMode="Single">
+            <ListBoxItem Content="self"/>
+            <ListBoxItem Content="unit"/>
+            <ListBoxItem Content="last"/>
+            <ListBoxItem Content="lasttask"/>
+            <ListBoxItem Content="lastlist"/>
+        </ListBox>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="OK" Width="75" Margin="0,0,5,0" Click="OnConfirmClick"/>
+            <Button Content="Cancel" Width="75" Click="OnCancelClick"/>
+        </StackPanel>
+    </StackPanel>
+</editWindows:EditWindow>

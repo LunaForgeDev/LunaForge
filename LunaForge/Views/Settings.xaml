@@ -50,6 +50,9 @@
                         <TextBlock Text="Code Indent Spaces" Width="110" VerticalAlignment="Center"/>
                         <xctk:IntegerUpDown Value="{Binding CodeIndentSpaces}" Margin="5,0" VerticalAlignment="Center" Minimum="0"/>
                     </DockPanel>
+                    <DockPanel Margin="0,2">
+                        
+                    </DockPanel>
                 </StackPanel>
             </TabItem>
             <TabItem Header="Services">

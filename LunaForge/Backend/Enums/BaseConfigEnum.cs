@@ -10,6 +10,8 @@ public enum BaseConfigEnum
     [BaseConfig(ConfigSystemCategory.General, "")] ProjectsFolder,
     [BaseConfig(ConfigSystemCategory.General, 4)] CodeIndentSpaces, // Number of spaces for code indent.
     [BaseConfig(ConfigSystemCategory.General, "", true)] PinnedProjects,
+    [BaseConfig(ConfigSystemCategory.General, "")] LuaSTGInstances, // List of LuaSTG installations separated by ';'
+    [BaseConfig(ConfigSystemCategory.General, false)] CheckForUpdatesOnStartup,
 
     // ## SERVICES ## //
     [BaseConfig(ConfigSystemCategory.Services, false)] UseDiscordRPC,

@@ -1,6 +1,7 @@
 ﻿using LunaForge.Backend.Attributes.TreeNodesAttributes;
 using LunaForge.Models;
 using LunaForge.Models.Documents;
+using LunaForge.Services;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -30,9 +31,20 @@ public class IfNode : TreeNode
     [JsonIgnore]
     [NodeAttribute("")]
     public string Condition { get; set; }
+    private TraceHandle? conditionIsNull;
 
     public override string ToString()
     {
+        if (string.IsNullOrEmpty(Condition))
+        {
+            conditionIsNull ??= CommitTrace(TraceSeverity.Error, "Condition must not be empty.");
+        }
+        else
+        {
+            conditionIsNull?.Resolve();
+            conditionIsNull = null;
+        }
+
         return $"If ({Condition})";
     }
 
@@ -50,7 +62,6 @@ public class IfNode : TreeNode
 
     public override IEnumerable<Tuple<int, TreeNode>> GetLines()
     {
-        yield return new Tuple<int, TreeNode>(1, this);
         foreach (Tuple<int, TreeNode> t in GetChildLines())
             yield return t;
         yield return new Tuple<int, TreeNode>(1, this);

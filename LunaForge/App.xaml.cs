@@ -20,8 +20,6 @@ public partial class App : Application
 
         CoreLogger.Initialize();
 
-        await CheckForUpdatesAsync();
-
         bool setupDone = EditorConfig.Default.Get<bool>("SetupDone").Value;
         if (!setupDone)
         {
@@ -55,40 +53,5 @@ public partial class App : Application
         };
         
         launcher.Show();
-    }
-
-    /// <summary>
-    /// TODO: Move that into some class, like "UpdaterService" + UI.
-    /// </summary>
-    /// <returns></returns>
-    private static async Task CheckForUpdatesAsync()
-    {
-        ILogger logger = CoreLogger.Create("Updater");
-        try
-        {
-            logger.Information("Checking updates...");
-            var mgr = new UpdateManager("https://github.com/LunaForgeDev/LunaForge/releases");
-            if (!mgr.IsInstalled)
-            {
-                logger.Information("Not installed or running dev, skipping update check.");
-                return; // Dev
-            }
-
-            var newVersion = await mgr.CheckForUpdatesAsync();
-            if (newVersion is null)
-            {
-                logger.Information("No update found.");
-                return;
-            }
-
-            // TODO: UI for update confirmation.
-            logger.Information("New update found: {0}", newVersion.TargetFullRelease.Version);
-            await mgr.DownloadUpdatesAsync(newVersion);
-            mgr.ApplyUpdatesAndRestart(newVersion);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning("Impossible to check for updates: {0}", ex);
-        }
     }
 }

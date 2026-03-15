@@ -49,7 +49,7 @@ public class BuiltInNodeLibrary : NodeLibraryBase
         });
         general.AddNode<IfElse>("Else");
         general.AddNode<IfElseIf>("Else If");
-        general.AddNode<While>("White");
+        general.AddNode<While>("While");
         general.AddNode<Repeat>("Repeat");
 
         #endregion

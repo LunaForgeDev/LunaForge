@@ -58,7 +58,16 @@ public class ProjectCompilerService
         Logger.Information($"Compilation target: '{target.TargetName}' building in '{target.BuildDirectory}'");
 
         // -------------------------------------------- Step 1: Commit changes. Test for editor errors, and do other shit.
+
+        if (TraceService.Instance.ErrorCount != 0)
+        {
+            Logger.Error("There are errors in your project. Please fix them before compiling.");
+            MessageBox.Show("There are errors in your project. Please fix them before compiling.", "Compilation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+
         // If "main.lua" or "main.lfd" doesn't exist somewhere in the project, that's a fatal compiler error.
+        // This should be handled by the trace system but this is doubled checked just in case the trace system didn't catch it.
         if (!CheckForEntryPoint())
             return false;
         Directory.CreateDirectory(CompileCache);

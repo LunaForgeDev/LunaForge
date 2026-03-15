@@ -1,4 +1,6 @@
-﻿using LunaForge.Models.TreeNodes;
+﻿using LunaForge.EditWindows;
+using LunaForge.Models.TreeNodes;
+using LunaForge.Nodes;
 using LunaForge.Services;
 using McMaster.NETCore.Plugins;
 using Serilog;
@@ -56,6 +58,8 @@ public class PluginManager : IDisposable
             
             _libraries[_builtInLibrary.LibraryName] = _builtInLibrary;
             _libraryToPluginMap[_builtInLibrary.LibraryName] = BuiltInLibraryKey;
+
+            EditWindowRegistry.Instance.RegisterFromAssembly(typeof(BuiltInNodeLibrary).Assembly, BuiltInLibraryKey);
             
             Logger.Information($"Built-in library loaded: {_builtInLibrary.DisplayName} (v{_builtInLibrary.Version})");
             OnLibraryLoaded?.Invoke(_builtInLibrary);
@@ -176,6 +180,8 @@ public class PluginManager : IDisposable
             );
 
             var assembly = loader.LoadDefaultAssembly();
+
+            EditWindowRegistry.Instance.RegisterFromAssembly(assembly, pluginKey);
 
             var libraryTypes = assembly.GetTypes()
                 .Where(t => typeof(INodeLibrary).IsAssignableFrom(t)
@@ -335,6 +341,8 @@ public class PluginManager : IDisposable
                     Logger.Information($"Unloaded compilation target: {targetName}");
                 }
             }
+
+            EditWindowRegistry.Instance.UnregisterBySource(pluginKey);
 
             context.Dispose();
             _loadedPlugins.Remove(pluginKey);

@@ -52,20 +52,10 @@ public partial class CodeSegment : TreeNode
 
     public override IEnumerable<Tuple<int, TreeNode>> GetLines()
     {
-        string s = Head;
-        int i = 1;
-        foreach (char c in s)
-            if (c == '\n')
-                i++;
-        yield return new Tuple<int, TreeNode>(i, this);
-        foreach (Tuple<int, TreeNode> t in GetChildLines())
+        yield return new Tuple<int, TreeNode>(CountLines(Head), this);
+        foreach (var t in GetChildLines())
             yield return t;
-        s = Tail;
-        i = 1;
-        foreach (char c in s)
-            if (c == '\n')
-                i++;
-        yield return new Tuple<int, TreeNode>(i, this);
+        yield return new Tuple<int, TreeNode>(CountLines(Tail), this);
     }
 
     public override string ToString()

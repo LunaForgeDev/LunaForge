@@ -347,7 +347,7 @@ public partial class MainWindowModel : ObservableObject
 
         var pluginManagerWindow = new PluginManagerWindow(Project.PluginManager)
         {
-            Owner = System.Windows.Application.Current.MainWindow
+            Owner = Application.Current.MainWindow
         };
         pluginManagerWindow.ShowDialog();
         
@@ -491,7 +491,40 @@ public partial class MainWindowModel : ObservableObject
     [RelayCommand]
     private void AddNode()
     {
-        // TODO: Create a small window dialog with only keyboard input to search nodes and create them.
+        var win = new AddNodeWindow
+        {
+            Owner = Application.Current.MainWindow
+        };
+        if (win.ShowDialog() == true && win.DataContext is AddNodeVM vm && vm.SelectedItem != null)
+        {
+            var node = vm.SelectedItem.CreateInstance();
+            if (node != null)
+                InsertNode(node, vm.SelectedItem.DisplayName);
+        }
+    }
+
+    [RelayCommand]
+    private async Task CheckForUpdates(CancellationToken ct)
+    {
+        await LFUpdateManager.CheckForUpdatesAsync();
+    }
+
+    [RelayCommand]
+    private void GoToLine()
+    {
+        var doc = SelectedFile as DocumentFileLFD;
+        if (doc == null)
+            return;
+
+        var dialog = new GoToLineWindow();
+        if (dialog.ShowDialog() == true)
+        {
+            if (!doc.GoToLuaLine(dialog.LineNumber))
+            {
+                MessageBox.Show($"No node at this line: {dialog.LineNumber}.", "Node not found",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
     }
 
     #region Copy, Cut and Paste Commands (help)
