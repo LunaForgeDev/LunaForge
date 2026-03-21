@@ -26,6 +26,8 @@ public class BuiltInNodeLibrary : NodeLibraryBase
 
         var general = CreateCategory("General");
 
+        general.AddNode<AddProjectFile>("Add File to Project");
+
         general.AddNode<Folder>("Folder");
         general.AddNode<FolderRed>("Red Folder");
         general.AddNode<FolderGreen>("Green Folder");
