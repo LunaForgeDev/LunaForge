@@ -33,6 +33,8 @@ public partial class DocumentFile : ObservableObject
 
     [ObservableProperty]
     public string fileName = "Untitled";
+    [ObservableProperty]
+    public string displayFileName = "Untitled";
     [JsonIgnore] public string FileHash { get; set; } = Guid.NewGuid().ToString();
     [JsonIgnore] public string FilePath { get; set; } = string.Empty;
 
@@ -68,6 +70,7 @@ public partial class DocumentFile : ObservableObject
         T projectFile = new()
         {
             FilePath = name,
+            DisplayFileName = name,
         };
         return projectFile;
     }
@@ -79,6 +82,7 @@ public partial class DocumentFile : ObservableObject
     {
         FilePath = filePath;
         FileName = Path.GetFileName(filePath);
+        DisplayFileName = Path.GetFileName(filePath);
         FileExtension = Path.GetExtension(filePath);
     }
 
@@ -139,14 +143,20 @@ public partial class DocumentFile : ObservableObject
             return false;
     }
 
+    partial void OnFileNameChanged(string value)
+    {
+        DisplayFileName = value;
+        UpdateFileNameDisplay();
+    }
+
     private void UpdateFileNameDisplay()
     {
-        string baseName = FileName.TrimEnd('*', ' ');
+        string baseName = DisplayFileName.TrimEnd('*', ' ');
 
-        if (IsUnsaved && !FileName.EndsWith('*'))
-            FileName = $"{baseName} *";
-        else if (!IsUnsaved && FileName.EndsWith('*'))
-            FileName = baseName;
+        if (IsUnsaved && !DisplayFileName.EndsWith('*'))
+            DisplayFileName = $"{baseName} *";
+        else if (!IsUnsaved && DisplayFileName.EndsWith('*'))
+            DisplayFileName = baseName;
     }
 
     #endregion
