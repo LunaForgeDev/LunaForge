@@ -1,0 +1,29 @@
+﻿[
+  {
+    "Name": "getPlayerHealth",
+    "Type": "Function",
+    "Description": "Retrieves the current health point value of a designated target entity.",
+    "Usage": "getPlayerHealth(playerId)",
+    "Parameters": [
+      {
+        "Name": "playerId",
+        "Type": "integer",
+        "Description": "The unique numerical identifier of the connected player instance."
+      }
+    ]
+  },
+  {
+    "Name": "lstg.Renderer.NO",
+    "Type": "Variable",
+    "Description": "A global configuration constant representing the maximum number of clients allowed.",
+    "Usage": "lstg.Renderer.YES",
+    "Parameters": []
+  },
+  {
+    "Name": "lstg.Renderer.YES",
+    "Type": "Variable",
+    "Description": "A global configuration constant representing the maximum number of clients allowed.",
+    "Usage": "lstg.Renderer.NO",
+    "Parameters": []
+  }
+]

@@ -11,6 +11,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -260,6 +261,22 @@ public partial class MainWindowModel : ObservableObject
             Settings settings = new();
             settings.Show();
             return;
+        }
+        else if (Path.GetExtension(filePath).Equals(".lua", StringComparison.CurrentCultureIgnoreCase))
+        {
+            string externalCmd = EditorConfig.Default.Get<string>("ExternalCodeEditor").Value;
+            if (!string.IsNullOrEmpty(externalCmd))
+            {
+                using Process runCmd = new();
+                runCmd.StartInfo.UseShellExecute = true;
+                runCmd.StartInfo.WorkingDirectory = Path.GetDirectoryName(filePath);
+                runCmd.StartInfo.FileName = externalCmd;
+                runCmd.StartInfo.Arguments = $"\"{Path.GetFileName(filePath)}\"";
+                runCmd.StartInfo.CreateNoWindow = false;
+
+                runCmd.Start();
+                return;
+            }
         }
 
         var openedFile = Project!.OpenFile(filePath);

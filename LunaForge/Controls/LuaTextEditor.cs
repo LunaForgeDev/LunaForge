@@ -1,7 +1,14 @@
 using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
+using LunaForge.Controls.LuaEditor;
 using LunaForge.Helpers;
+using LunaForge.Services;
+using Newtonsoft.Json;
+using Serilog;
+using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
@@ -9,8 +16,12 @@ using System.Windows.Input;
 
 namespace LunaForge.Controls;
 
+// TODO: Implement a way to bypass the editor's texteditor, to use "code" or any other text editors. Allow to put the cmd call to open the editor in the settings.
+
 public partial class LuaTextEditor : TextEditor
 {
+    private static ILogger Logger = CoreLogger.Create("LuaTextEditor");
+
     private static readonly char[] OpeningBrackets = ['(', '[', '{', '"', '\''];
     private static readonly char[] ClosingBrackets = [')', ']', '}', '"', '\''];
 
@@ -25,6 +36,9 @@ public partial class LuaTextEditor : TextEditor
     ];
 
     private bool _isUpdatingText;
+
+    private CompletionWindow? completionWindow;
+    private List<LuaApiItem> engineApiRegistry = [];
 
     public static readonly DependencyProperty TextProperty =
         DependencyProperty.Register(
@@ -83,6 +97,10 @@ public partial class LuaTextEditor : TextEditor
         TextArea.TextEntering += OnTextEntering;
         TextArea.TextEntered += OnTextEntered;
 
+        LostFocus += (s, e) => completionWindow?.Close();
+
+        LoadEngineApi();
+
         TextChanged += (sender, args) =>
         {
             if (_isUpdatingText)
@@ -94,10 +112,35 @@ public partial class LuaTextEditor : TextEditor
         };
     }
 
+    // TODO: Load the engine API based on a plugin, or use the builtin one. For now, this is hardcoded.
+    public void LoadEngineApi()
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            string resourceName = "LunaForge.Resources.built-in_api_flux.json";
+            using Stream stream = assembly.GetManifestResourceStream(resourceName) ?? throw new FileNotFoundException($"Dumbass.");
+            using StreamReader reader = new(stream);
+            string json = reader.ReadToEnd();
+            engineApiRegistry = JsonConvert.DeserializeObject<List<LuaApiItem>>(json) ?? [];
+        }
+        catch (Exception ex)
+        {
+            engineApiRegistry = [];
+            Logger.Error(ex, "Couldn't find file.");
+        }
+    }
+
     private void OnTextEntering(object sender, TextCompositionEventArgs e)
     {
         if (e.Text.Length > 0 && char.IsControl(e.Text[0]))
             return;
+
+        if (completionWindow != null && e.Text.Length > 0)
+        {
+            if (!char.IsLetterOrDigit(e.Text[0]) && e.Text[0] != '_')
+                completionWindow.CompletionList.RequestInsertion(e);
+        }
 
         if (e.Text.Length == 1)
         {
@@ -129,6 +172,9 @@ public partial class LuaTextEditor : TextEditor
 
         char typedChar = e.Text[0];
 
+        if (char.IsLetter(typedChar) || typedChar == '_' || typedChar == '.')
+            OpenIntelliSenseWindow();
+
         if (Array.IndexOf(OpeningBrackets, typedChar) >= 0)
         {
             InsertClosingBracket(typedChar);
@@ -141,6 +187,115 @@ public partial class LuaTextEditor : TextEditor
         {
             HandleKeywordUnindent();
         }
+    }
+
+    private void OpenIntelliSenseWindow()
+    {
+        if (completionWindow != null)
+            return;
+
+        int caretOffset = TextArea.Caret.Offset;
+
+        int contextStart = caretOffset;
+        while (contextStart > 0)
+        {
+            char ch = Document.GetCharAt(contextStart - 1);
+            if (char.IsLetterOrDigit(ch) || ch == '_' || ch == '.')
+                contextStart--;
+            else
+                break;
+        }
+
+        string fullContext = Document.GetText(contextStart, caretOffset - contextStart);
+
+        string currentNamespace = "";
+        int lastDot = fullContext.LastIndexOf('.');
+        if (lastDot >= 0)
+        {
+            currentNamespace = fullContext[..(lastDot + 1)];
+        }
+
+        int startOffset = (lastDot >= 0) ? (contextStart + lastDot + 1) : contextStart;
+
+        List<ICompletionData> temporaryDataList = [];
+
+        foreach (var apiItem in engineApiRegistry)
+        {
+            string itemName = apiItem.Name ?? "";
+
+            if (!string.IsNullOrEmpty(currentNamespace))
+            {
+                if (itemName.StartsWith(currentNamespace, StringComparison.OrdinalIgnoreCase))
+                {
+                    string remainder = itemName[currentNamespace.Length..];
+                    int nextDot = remainder.IndexOf('.');
+
+                    if (nextDot >= 0)
+                    {
+                        string immediateSubTable = remainder[..nextDot];
+
+                        if (!temporaryDataList.Any(d => d.Text.Equals(immediateSubTable, StringComparison.Ordinal)))
+                        {
+                            var folderItem = new LuaApiItem
+                            {
+                                Name = immediateSubTable,
+                                Type = "Variable",
+                                Description = $"Namespace under {currentNamespace.TrimEnd('.')}",
+                                Usage = immediateSubTable
+                            };
+                            temporaryDataList.Add(new LuaCompletionData(folderItem));
+                        }
+                    }
+                    else
+                    {
+                        var scopedItem = new LuaApiItem
+                        {
+                            Name = remainder,
+                            Type = apiItem.Type,
+                            Description = apiItem.Description,
+                            Usage = apiItem.Usage,
+                            Parameters = apiItem.Parameters
+                        };
+                        temporaryDataList.Add(new LuaCompletionData(scopedItem));
+                    }
+                }
+            }
+            else
+            {
+                if (!itemName.Contains('.'))
+                {
+                    temporaryDataList.Add(new LuaCompletionData(apiItem));
+                }
+                else
+                {
+                    string baseTable = itemName.Split('.')[0];
+                    if (!temporaryDataList.Any(d => d.Text.Equals(baseTable, StringComparison.Ordinal)))
+                    {
+                        temporaryDataList.Add(new LuaCompletionData(new LuaApiItem { Name = baseTable, Type = "Variable", Description = "Global Namespace" }));
+                    }
+                }
+            }
+        }
+
+        if (temporaryDataList.Count == 0)
+            return;
+
+        completionWindow = new CompletionWindow(TextArea)
+        {
+            StartOffset = startOffset
+        };
+
+        IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
+        foreach (var item in temporaryDataList)
+        {
+            data.Add(item);
+        }
+
+        completionWindow.Show();
+        completionWindow.Closed += delegate
+        {
+            completionWindow = null;
+        };
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)

@@ -12,7 +12,8 @@ public enum BaseConfigEnum
     [BaseConfig(ConfigSystemCategory.General, "", true)] PinnedProjects,
     [BaseConfig(ConfigSystemCategory.General, "")] LuaSTGInstances, // List of LuaSTG installations separated by ';'
     [BaseConfig(ConfigSystemCategory.General, false)] CheckForUpdatesOnStartup,
-
+    [BaseConfig(ConfigSystemCategory.General, "")] ExternalCodeEditor,
+    
     // ## SERVICES ## //
     [BaseConfig(ConfigSystemCategory.Services, false)] UseDiscordRPC,
     [BaseConfig(ConfigSystemCategory.Services, "https://lunaforge.rulholos.fr/marketplace")] TemplateServerUrl,

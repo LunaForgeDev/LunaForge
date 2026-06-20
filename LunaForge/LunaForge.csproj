@@ -78,6 +78,7 @@
     <None Remove="Nodes\Images\userdefinednode.png" />
     <None Remove="Nodes\Images\Warning.png" />
     <None Remove="Nodes\Images\while.png" />
+    <None Remove="Resources\built-in_api_flux.json" />
     <None Remove="Resources\fs-pixel-sans-unicode-regular.ttf" />
     <None Remove="Resources\JBMono.ttf" />
     <None Remove="Resources\ShareTechMono-Regular.ttf" />
@@ -310,6 +311,9 @@
     <Resource Include="Nodes\Images\while.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <EmbeddedResource Include="Resources\built-in_api_flux.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
     <Resource Include="Resources\fs-pixel-sans-unicode-regular.ttf">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

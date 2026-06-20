@@ -16,6 +16,8 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int codeIndentSpaces;
     [ObservableProperty]
+    private string externalCodeEditor;
+    [ObservableProperty]
     private bool enableDiscordRPC;
     [ObservableProperty]
     private string marketplaceRepoServer;
@@ -59,6 +61,7 @@ public partial class SettingsViewModel : ObservableObject
     {
         ProjectsFolder = EditorConfig.Default.Get<string>("ProjectsFolder").Value;
         CodeIndentSpaces = EditorConfig.Default.Get<int>("CodeIndentSpaces").Value;
+        ExternalCodeEditor = EditorConfig.Default.Get<string>("ExternalCodeEditor").Value;
         EnableDiscordRPC = EditorConfig.Default.Get<bool>("UseDiscordRPC").Value;
         MarketplaceRepoServer = EditorConfig.Default.Get<string>("TemplateServerUrl").Value;
         DefaultProjectAuthor = EditorConfig.Default.Get<string>("ProjectAuthor").Value;
@@ -77,6 +80,7 @@ public partial class SettingsViewModel : ObservableObject
     {
         EditorConfig.Default.Set("ProjectsFolder", ProjectsFolder);
         EditorConfig.Default.Set("CodeIndentSpaces", CodeIndentSpaces);
+        EditorConfig.Default.Set("ExternalCodeEditor", ExternalCodeEditor);
         EditorConfig.Default.Set("UseDiscordRPC", EnableDiscordRPC);
         EditorConfig.Default.Set("TemplateServerUrl", MarketplaceRepoServer);
         EditorConfig.Default.Set("ProjectAuthor", DefaultProjectAuthor);

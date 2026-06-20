@@ -51,7 +51,8 @@
                         <xctk:IntegerUpDown Value="{Binding CodeIndentSpaces}" Margin="5,0" VerticalAlignment="Center" Minimum="0"/>
                     </DockPanel>
                     <DockPanel Margin="0,2">
-                        
+                        <TextBlock Text="External Code Editor Command" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding ExternalCodeEditor}" Margin="5,0" Padding="1" VerticalAlignment="Center"/>
                     </DockPanel>
                 </StackPanel>
             </TabItem>
