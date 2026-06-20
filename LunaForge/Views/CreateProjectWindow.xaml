@@ -71,12 +71,20 @@
                          Height="25"
                          FontSize="12"/>
 
-                <TextBlock Text="Location:"
-                           Grid.Row="2"
-                           Grid.Column="0"
-                           Grid.ColumnSpan="3"
-                           FontSize="12"
-                           FontWeight="Bold"/>
+                <StackPanel Grid.Row="2"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="3"
+                            Orientation="Horizontal">
+                    <TextBlock Text="Location:"
+                               FontSize="12"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="(must be an empty directory)"
+                               Margin="5,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="10"
+                               FontStyle="Italic"
+                               Foreground="Gray"/>
+                </StackPanel>
                 <Grid Grid.Row="3"
                       Grid.Column="0"
                       Grid.ColumnSpan="3">
@@ -116,6 +124,7 @@
                     <ComboBox Grid.Column="0"
                               ItemsSource="{Binding Instances}"
                               SelectedItem="{Binding SelectedInstance}"
+                              DisplayMemberPath="DisplayName"
                               Height="25"
                               FontSize="12"
                               VerticalContentAlignment="Center"/>
@@ -174,7 +183,7 @@
             </Grid>
         </Grid>
         <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal">
-            <Button Content="OK" Margin="2" Padding="5" Command="{Binding OkCommand}"/>
+            <Button Content="OK" Margin="2" Padding="5" Command="{Binding CreateProjectCommand}"/>
             <Button Content="Cancel" Margin="2" Padding="5" Command="{Binding CancelCommand}"/>
         </StackPanel>
     </Grid>

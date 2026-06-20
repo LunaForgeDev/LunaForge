@@ -50,14 +50,6 @@ public partial class CodeSegment : TreeNode
         yield return sp + r.Replace(Tail, nsp) + "\n";
     }
 
-    public override IEnumerable<Tuple<int, TreeNode>> GetLines()
-    {
-        yield return new Tuple<int, TreeNode>(CountLines(Head), this);
-        foreach (var t in GetChildLines())
-            yield return t;
-        yield return new Tuple<int, TreeNode>(CountLines(Tail), this);
-    }
-
     public override string ToString()
     {
         return $"{Head}\n...";

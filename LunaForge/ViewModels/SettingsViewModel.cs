@@ -35,10 +35,24 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool isProjectLoaded;
 
+    public ObservableCollection<string> AvailableCompilationTargets { get; } = [];
+
     public SettingsViewModel()
     {
         IsProjectLoaded = MainWindowModel.Project != null;
         LoadSettings();
+        LoadAvailableCompilationTargets();
+    }
+
+    private void LoadAvailableCompilationTargets()
+    {
+        AvailableCompilationTargets.Clear();
+        var targets = MainWindowModel.Project?.PluginManager?.CompilationTargets;
+        if (targets != null)
+        {
+            foreach (var key in targets.Keys)
+                AvailableCompilationTargets.Add(key);
+        }
     }
 
     private void LoadSettings()

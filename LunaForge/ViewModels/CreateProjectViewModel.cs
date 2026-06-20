@@ -39,9 +39,9 @@ public partial class CreateProjectViewModel : ObservableObject
     private bool isLoadingTemplates = false;
 
     [ObservableProperty]
-    private ObservableCollection<string> instances = []; // TODO: Fill this with actual instances from config
+    private ObservableCollection<LuaSTGInstance> instances = [];
     [ObservableProperty]
-    private string? selectedInstance;
+    private LuaSTGInstance? selectedInstance;
 
     public event Action<string>? ProjectCreated;
     public event Action? RequestClose;
@@ -55,6 +55,7 @@ public partial class CreateProjectViewModel : ObservableObject
         ProjectAuthor = EditorConfig.Default.Get<string>("ProjectAuthor").Value;
 
         _ = LoadTemplatesAsync();
+        GetLuaSTGInstances();
     }
 
     private async Task LoadTemplatesAsync()
@@ -177,7 +178,7 @@ public partial class CreateProjectViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanCreateProject))]
     private async Task CreateProject()
     {
         if (string.IsNullOrEmpty(ProjectName))
@@ -251,10 +252,26 @@ public partial class CreateProjectViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void Ok()
+    private bool CanCreateProject()
     {
-        //TODO: Create project based on selected template and details
+        if (string.IsNullOrEmpty(ProjectName))
+        {
+            //MessageBox.Show("Project name cannot be empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+        if (string.IsNullOrEmpty(ProjectPath))
+        {
+            //MessageBox.Show("Project path cannot be empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+        if (Directory.Exists(ProjectPath)
+            && (new DirectoryInfo(ProjectPath).GetFiles().Length > 0 || new DirectoryInfo(ProjectPath).GetDirectories().Length > 0))
+        {
+            //MessageBox.Show("The selected folder is not empty. Please choose an empty folder.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+
+        return true;
     }
 
     [RelayCommand]
@@ -277,6 +294,20 @@ public partial class CreateProjectViewModel : ObservableObject
             string parentFolder = EditorConfig.Default.Get<string>("ProjectsFolder").Value;
             ProjectPath = Path.Combine(parentFolder, value);
         }
+        CreateProjectCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnProjectPathChanged(string value)
+    {
+        CreateProjectCommand.NotifyCanExecuteChanged();
+    }
+
+    private ObservableCollection<LuaSTGInstance> GetLuaSTGInstances()
+    {
+        Instances = LuaSTGInstancesService.Instances;
+        if (Instances.Count > 0)
+            SelectedInstance = Instances[0];
+        return Instances;
     }
 }
 

@@ -141,14 +141,42 @@ public abstract partial class TreeNode : ObservableObject, ICloneable, ITraceSou
 
     public virtual IEnumerable<Tuple<int, TreeNode>> GetLines()
     {
-        int total = 0;
-        foreach (string chunk in ToLua(0))
-            foreach (char c in chunk)
-                if (c == '\n')
-                    total++;
-        if (total == 0)
-            total = 1;
-        yield return new Tuple<int, TreeNode>(total, this);
+        var realChildren = Children.Where(c => !c.IsBanned).ToList();
+
+        if (realChildren.Count == 0)
+        {
+            int n = ToLua(0).Sum(s => s.Count(c => c == '\n'));
+            yield return Tuple.Create(Math.Max(1, n), this);
+            yield break;
+        }
+
+        string fullOutput = string.Concat(ToLua(0));
+        int pos = 0;
+
+        foreach (TreeNode child in realChildren)
+        {
+            string childOutput = string.Concat(child.ToLua(0));
+
+            int childStart = childOutput.Length > 0
+                ? fullOutput.IndexOf(childOutput, pos, StringComparison.Ordinal)
+                : -1;
+
+            if (childStart < 0)
+                childStart = pos;
+
+            int headLines = fullOutput.AsSpan(pos, childStart - pos).Count('\n');
+            if (headLines > 0)
+                yield return Tuple.Create(headLines, this);
+
+            foreach (var e in child.GetLines())
+                yield return e;
+
+            pos = childStart + childOutput.Length;
+        }
+
+        int tailLines = fullOutput.AsSpan(Math.Min(pos, fullOutput.Length)).Count('\n');
+        if (tailLines > 0)
+            yield return Tuple.Create(tailLines, this);
     }
 
     protected IEnumerable<Tuple<int, TreeNode>> GetChildLines()

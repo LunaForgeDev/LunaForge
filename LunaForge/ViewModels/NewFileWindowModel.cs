@@ -12,7 +12,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Xml.Linq;
+using MessageBox = System.Windows.MessageBox;
 
 namespace LunaForge.ViewModels;
 
@@ -20,14 +22,15 @@ public partial class NewFileWindowModel : ObservableObject
 {
     private static ILogger Logger = CoreLogger.Create("New File Window");
 
+    private readonly OnlineResourceService onlineResourceService = new();
     private NewFileWindow owner { get; }
-    
+
     [ObservableProperty]
     public string fileName = "Untitled.lfd";
-    
+
     [ObservableProperty]
     public string author = EditorConfig.Default.Get<string>("ProjectAuthor").Value;
-    
+
     [ObservableProperty]
     public string filePath = "";
 
@@ -35,53 +38,105 @@ public partial class NewFileWindowModel : ObservableObject
     public string textDescription = "";
 
     [ObservableProperty]
-    public DefS selectedTemplate = null;
+    public NewFileTemplateViewModel? selectedTemplate = null;
 
     [ObservableProperty]
     private FileType selectedFileType = FileType.Lfd;
 
     [ObservableProperty]
+    private bool isLoadingTemplates = false;
+
+    [ObservableProperty]
     private ObservableCollection<string> luaSTGInstances = [];
 
-    public ObservableCollection<DefS> Templates { get; } = [];
-    public ObservableCollection<DefS> FilteredTemplates { get; } = [];
+    public ObservableCollection<NewFileTemplateViewModel> Templates { get; } = [];
+    public ObservableCollection<NewFileTemplateViewModel> FilteredTemplates { get; } = [];
 
-    private List<DefS> allTemplates = [];
+    private List<NewFileTemplateViewModel> allTemplates = [];
 
     public NewFileWindowModel() { }
 
     public NewFileWindowModel(NewFileWindow owner)
     {
         this.owner = owner;
-        LoadTemplates();
-        UpdateFilteredTemplates();
-        GetLuaSTGInstances();
-        FilePath = MainWindowModel.Project.ProjectRoot;
+        _ = LoadTemplatesAsync();
+        FilePath = MainWindowModel.Project?.ProjectRoot ?? "";
     }
 
     public NewFileWindowModel(NewFileWindow owner, string preFilledPath)
     {
         this.owner = owner;
-        LoadTemplates();
-        UpdateFilteredTemplates();
-        GetLuaSTGInstances();
-        FilePath = string.IsNullOrEmpty(preFilledPath) ? MainWindowModel.Project.ProjectRoot : preFilledPath;
-    }
-    
-    /// <summary>
-    /// TODO: Move that to the Project Creator window, not the file creator window.
-    /// </summary>
-    private void GetLuaSTGInstances()
-    {
-        string instancesConfig = EditorConfig.Default.Get<string>("LuaSTGInstances").Value;
-        if (!string.IsNullOrEmpty(instancesConfig))
-        {
-            var instances = instancesConfig.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s));
-            LuaSTGInstances = new ObservableCollection<string>(instances);
-        }
+        _ = LoadTemplatesAsync();
+        FilePath = string.IsNullOrEmpty(preFilledPath) ? MainWindowModel.Project?.ProjectRoot ?? "" : preFilledPath;
     }
 
-    private void LoadTemplates()
+    private async Task LoadTemplatesAsync()
+    {
+        IsLoadingTemplates = true;
+        allTemplates.Clear();
+        Templates.Clear();
+
+        try
+        {
+            var localTemplates = LoadLocalTemplates();
+            foreach (var template in localTemplates)
+                allTemplates.Add(template);
+
+            var onlineTemplates = await onlineResourceService.GetAvailableFileTemplatesAsync();
+            foreach (var onlineTemplate in onlineTemplates)
+            {
+                string ext = "." + onlineTemplate.FileType.TrimStart('.');
+                allTemplates.Add(new NewFileTemplateViewModel
+                {
+                    Text = onlineTemplate.Name,
+                    FullPath = string.Empty,
+                    Icon = GetIconForFileType(ext),
+                    Description = onlineTemplate.Description,
+                    FileExtension = ext,
+                    IsOnline = true,
+                    OnlineTemplate = onlineTemplate
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Error loading templates: {ex.Message}");
+        }
+        finally
+        {
+            IsLoadingTemplates = false;
+        }
+
+        // Add default "Empty" templates for each type
+        allTemplates.Add(new NewFileTemplateViewModel
+        {
+            Text = "Empty",
+            FullPath = string.Empty,
+            Icon = GetIconForFileType(".lfd"),
+            Description = "Empty LFD Definition File",
+            FileExtension = ".lfd"
+        });
+        allTemplates.Add(new NewFileTemplateViewModel
+        {
+            Text = "Empty",
+            FullPath = string.Empty,
+            Icon = GetIconForFileType(".lua"),
+            Description = "Empty Lua Script",
+            FileExtension = ".lua"
+        });
+        allTemplates.Add(new NewFileTemplateViewModel
+        {
+            Text = "Empty",
+            FullPath = string.Empty,
+            Icon = GetIconForFileType(".lfs"),
+            Description = "Empty Shader File",
+            FileExtension = ".lfs"
+        });
+
+        UpdateFilteredTemplates();
+    }
+
+    private List<NewFileTemplateViewModel> LoadLocalTemplates()
     {
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         string LunaForgePath = Path.Combine(documentsPath, "LunaForge");
@@ -92,48 +147,18 @@ public partial class NewFileWindowModel : ObservableObject
 
         List<FileInfo> fis = [.. dir.GetFiles("*.lua"), .. dir.GetFiles("*.lfd"), .. dir.GetFiles("*.lfs")];
 
-        foreach (FileInfo fi in fis)
-        {
-            Logger.Verbose($"Found template : {fi.FullName}");
-            
-            var template = new DefS
+        return [.. from FileInfo fi in fis
+            where fi.Exists
+            select new NewFileTemplateViewModel
             {
                 Text = Path.GetFileNameWithoutExtension(fi.Name),
                 FullPath = fi.FullName,
                 Icon = GetIconForFileType(fi.Extension),
                 Description = GetDescriptionForTemplate(fi.FullName),
-                FileExtension = fi.Extension
-            };
-
-            allTemplates.Add(template);
-            Templates.Add(template);
-        }
-
-        // Add default "Empty" templates for each type
-        allTemplates.Add(new DefS
-        {
-            Text = "Empty",
-            FullPath = string.Empty,
-            Icon = GetIconForFileType(".lfd"),
-            Description = "Empty LFD Definition File",
-            FileExtension = ".lfd"
-        });
-        allTemplates.Add(new DefS
-        {
-            Text = "Empty",
-            FullPath = string.Empty,
-            Icon = GetIconForFileType(".lua"),
-            Description = "Empty Lua Script",
-            FileExtension = ".lua"
-        });
-        allTemplates.Add(new DefS
-        {
-            Text = "Empty",
-            FullPath = string.Empty,
-            Icon = GetIconForFileType(".lfs"),
-            Description = "Empty Shader File",
-            FileExtension = ".lfs"
-        });
+                FileExtension = fi.Extension,
+                IsOnline = false
+            }
+        ];
     }
 
     private static string GetIconForFileType(string extension)
@@ -213,8 +238,30 @@ public partial class NewFileWindowModel : ObservableObject
     }
 
     [RelayCommand]
-    public void Ok()
+    public async Task Ok()
     {
+        if (SelectedTemplate?.IsOnline == true && SelectedTemplate.OnlineTemplate != null)
+        {
+            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string cachePath = Path.Combine(documentsPath, "LunaForge", ".templates", "cache", "files");
+            Directory.CreateDirectory(cachePath);
+
+            string ext = SelectedTemplate.FileExtension;
+            string localPath = Path.Combine(cachePath, SelectedTemplate.Text + ext);
+
+            Logger.Information($"Downloading online file template: {SelectedTemplate.Text}");
+            string? downloaded = await onlineResourceService.DownloadTemplateAsync(
+                SelectedTemplate.OnlineTemplate.DownloadUrl, localPath);
+
+            if (downloaded == null)
+            {
+                MessageBox.Show("Failed to download the template.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            SelectedTemplate.FullPath = downloaded;
+        }
+
         owner.DialogResult = true;
         owner.Close();
     }
@@ -250,11 +297,13 @@ public partial class NewFileWindowModel : ObservableObject
     }
 }
 
-public class DefS
+public partial class NewFileTemplateViewModel : ObservableObject
 {
     public string Text { get; set; }
     public string FullPath { get; set; }
     public string Icon { get; set; }
     public string Description { get; set; }
     public string FileExtension { get; set; }
+    public bool IsOnline { get; set; } = false;
+    public OnlineFileTemplate? OnlineTemplate { get; set; }
 }

@@ -3,9 +3,9 @@ using System.Windows.Forms;
 using LunaForge.Services;
 using Serilog;
 using LunaForge.Models;
-using LunaForge.THlib.Nodes;
 using TreeNode = LunaForge.Models.TreeNodes.TreeNode;
 using LunaForge.THlib.Nodes.Task;
+using LunaForge.THlib.Nodes.Audio;
 
 namespace LunaForge.THlib;
 
@@ -23,7 +23,6 @@ public class Plugin : NodeLibraryBase
 
     protected override void RegisterCategories()
     {
-        var data = CreateCategory("Data");
         var stage = CreateCategory("Stage");
         #region Task
         var task = CreateCategory("Task");

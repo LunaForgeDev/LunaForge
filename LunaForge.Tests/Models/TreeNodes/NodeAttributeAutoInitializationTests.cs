@@ -1,6 +1,7 @@
 using LunaForge.Models;
 using LunaForge.Models.TreeNodes;
 using LunaForge.THlib.Nodes;
+using LunaForge.THlib.Nodes.Audio;
 
 namespace LunaForge.Tests.Models.TreeNodes;
 

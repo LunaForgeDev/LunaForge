@@ -1,5 +1,6 @@
 ﻿using LunaForge.Backend.EditorCommands;
 using LunaForge.Helpers;
+using LunaForge.Models.TreeNodes;
 using LunaForge.Nodes.General;
 using LunaForge.Services;
 using LunaForge.ViewModels;
@@ -194,7 +195,8 @@ public partial class DocumentFileLFD : DocumentFile
                 RevealTreeNode(node);
                 if (doInvoke)
                 {
-                    //CreateInvoke(node);
+                    NodeAttribute? attr = node.GetAttributeFromName(node.MetaData.InvokeName);
+                    attr?.OpenEditor();
                 }
                 return true;
             }

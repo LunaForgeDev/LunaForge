@@ -12,4 +12,6 @@ namespace LunaForge.EditWindows;
 public class EditWindowKeyAttribute(string key) : Attribute
 {
     public string Key { get; } = key;
+
+    // TODO: Create a way to have default values to choose from in the combobox of the attribute.
 }

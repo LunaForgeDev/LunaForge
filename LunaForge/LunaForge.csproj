@@ -100,17 +100,17 @@
 
   <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
     <PackageReference Include="Extended.Wpf.Toolkit" Version="5.0.0" />
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="McMaster.NETCore.Plugins" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Nodify" Version="7.2.0" />
+    <PackageReference Include="Nodify" Version="7.3.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.TextWriter" Version="3.0.0" />
-    <PackageReference Include="Tomlyn" Version="1.1.1" />
+    <PackageReference Include="Tomlyn" Version="2.4.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
@@ -325,6 +325,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="EditWindows\Input\EditorFileSelector.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="LFTheme\Old\Controls.xaml.cs">
       <SubType>Code</SubType>
     </Compile>

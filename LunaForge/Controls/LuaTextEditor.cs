@@ -2,19 +2,19 @@ using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
 using LunaForge.Helpers;
-using System;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
 namespace LunaForge.Controls;
 
-public class LuaTextEditor : TextEditor
+public partial class LuaTextEditor : TextEditor
 {
     private static readonly char[] OpeningBrackets = ['(', '[', '{', '"', '\''];
     private static readonly char[] ClosingBrackets = [')', ']', '}', '"', '\''];
-    
-    private static readonly string[] LuaKeywordsRequiringEnd = 
+
+    private static readonly string[] LuaKeywordsRequiringEnd =
     [
         "function",
         "if",
@@ -23,6 +23,8 @@ public class LuaTextEditor : TextEditor
         "repeat",
         "do"
     ];
+
+    private bool _isUpdatingText;
 
     public static readonly DependencyProperty TextProperty =
         DependencyProperty.Register(
@@ -41,11 +43,15 @@ public class LuaTextEditor : TextEditor
     {
         if (d is LuaTextEditor editor)
         {
+            if (editor._isUpdatingText)
+                return;
+
             string newValue = e.NewValue as string ?? string.Empty;
-            
             if (editor.Document.Text != newValue)
             {
+                editor._isUpdatingText = true;
                 editor.Document.Text = newValue;
+                editor._isUpdatingText = false;
             }
         }
     }
@@ -59,23 +65,32 @@ public class LuaTextEditor : TextEditor
     public LuaTextEditor()
     {
         SyntaxHighlighting = SyntaxHighlightingHelper.GetLuaHighlighting();
-        
+
         Options.ConvertTabsToSpaces = true;
         Options.IndentationSize = 4;
         Options.EnableRectangularSelection = true;
         Options.EnableTextDragDrop = true;
         Options.ShowBoxForControlCharacters = true;
         Options.HighlightCurrentLine = true;
-        
+        Options.EnableHyperlinks = true;
+        Options.EnableImeSupport = true;
+        Options.ShowColumnRuler = true;
+        Options.ShowSpaces = true;
+        Options.ShowTabs = true;
+
+        TextArea.IndentationStrategy = null;
+
         TextArea.TextEntering += OnTextEntering;
         TextArea.TextEntered += OnTextEntered;
-        
+
         TextChanged += (sender, args) =>
         {
-            if (GetValue(TextProperty) as string != Document.Text)
-            {
-                SetValue(TextProperty, Document.Text);
-            }
+            if (_isUpdatingText)
+                return;
+
+            _isUpdatingText = true;
+            Text = Document.Text;
+            _isUpdatingText = false;
         };
     }
 
@@ -87,7 +102,14 @@ public class LuaTextEditor : TextEditor
         if (e.Text.Length == 1)
         {
             char typedChar = e.Text[0];
-            
+
+            if (!TextArea.Selection.IsEmpty && Array.IndexOf(OpeningBrackets, typedChar) >= 0)
+            {
+                WrapSelection(typedChar);
+                e.Handled = true;
+                return;
+            }
+
             if (Array.IndexOf(ClosingBrackets, typedChar) >= 0)
             {
                 int caretOffset = TextArea.Caret.Offset;
@@ -106,7 +128,7 @@ public class LuaTextEditor : TextEditor
             return;
 
         char typedChar = e.Text[0];
-        
+
         if (Array.IndexOf(OpeningBrackets, typedChar) >= 0)
         {
             InsertClosingBracket(typedChar);
@@ -115,16 +137,43 @@ public class LuaTextEditor : TextEditor
         {
             HandleNewLine();
         }
+        else
+        {
+            HandleKeywordUnindent();
+        }
     }
 
-    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
 
         if (e.Key == Key.Back && !e.Handled)
         {
-            HandleBackspace();
+            HandleBackspace(e);
         }
+    }
+
+    private void WrapSelection(char openingChar)
+    {
+        char closingChar = openingChar switch
+        {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '"' => '"',
+            '\'' => '\'',
+            _ => '\0'
+        };
+
+        if (closingChar == '\0') return;
+
+        var selection = TextArea.Selection;
+        int start = selection.SurroundingSegment.Offset;
+        int length = selection.SurroundingSegment.Length;
+        string selectedText = Document.GetText(start, length);
+
+        Document.Replace(start, length, openingChar + selectedText + closingChar);
+        TextArea.Selection = Selection.Create(TextArea, start + 1, start + 1 + length);
     }
 
     private void InsertClosingBracket(char openingChar)
@@ -158,19 +207,36 @@ public class LuaTextEditor : TextEditor
         TextArea.Caret.Offset = offset;
     }
 
-    private void HandleBackspace()
+    private void HandleBackspace(KeyEventArgs e)
     {
         int caretOffset = TextArea.Caret.Offset;
-        
-        if (caretOffset > 0 && caretOffset < Document.TextLength)
+        if (caretOffset <= 0) return;
+
+        if (caretOffset < Document.TextLength)
         {
             char prevChar = Document.GetCharAt(caretOffset - 1);
             char nextChar = Document.GetCharAt(caretOffset);
-            
+
             int openIndex = Array.IndexOf(OpeningBrackets, prevChar);
             if (openIndex >= 0 && ClosingBrackets[openIndex] == nextChar)
             {
-                Document.Remove(caretOffset, 1);
+                Document.Remove(caretOffset - 1, 2);
+                e.Handled = true;
+                return;
+            }
+        }
+
+        DocumentLine line = Document.GetLineByOffset(caretOffset);
+        int lineOffset = caretOffset - line.Offset;
+        if (lineOffset >= Options.IndentationSize)
+        {
+            string textBeforeCaret = Document.GetText(line.Offset, lineOffset);
+            string targetIndentSpace = new(' ', Options.IndentationSize);
+
+            if (textBeforeCaret.EndsWith(targetIndentSpace) && string.IsNullOrWhiteSpace(textBeforeCaret))
+            {
+                Document.Remove(caretOffset - Options.IndentationSize, Options.IndentationSize);
+                e.Handled = true;
             }
         }
     }
@@ -181,43 +247,61 @@ public class LuaTextEditor : TextEditor
         if (caretOffset == 0)
             return;
 
-        DocumentLine currentLine = Document.GetLineByOffset(caretOffset - 1);
-        string lineText = Document.GetText(currentLine.Offset, currentLine.Length).Trim();
+        DocumentLine previousLine = Document.GetLineByOffset(caretOffset - 1);
+        string lineText = Document.GetText(previousLine.Offset, previousLine.Length);
+        string trimmedText = lineText.Trim();
+        string indentation = GetIndentation(previousLine);
 
         foreach (string keyword in LuaKeywordsRequiringEnd)
         {
-            if (ShouldInsertEnd(lineText, keyword))
+            if (ShouldInsertEnd(trimmedText, keyword))
             {
-                string indentation = GetIndentation(currentLine);
+                if (IsEndAlreadyPresentForward(previousLine.LineNumber + 1))
+                    break;
+
                 string newIndentation = indentation + GetIndentString();
-                
                 string textToInsert = $"{newIndentation}\n{indentation}end";
+
                 Document.Insert(caretOffset, textToInsert);
-                
                 TextArea.Caret.Offset = caretOffset + newIndentation.Length;
                 return;
             }
         }
 
-        DocumentLine previousLine = Document.GetLineByOffset(caretOffset - 1);
-        string prevLineText = Document.GetText(previousLine.Offset, previousLine.Length);
-        string prevIndentation = GetIndentation(previousLine);
-        
-        if (prevLineText.TrimEnd().EndsWith("then") || 
-            prevLineText.TrimEnd().EndsWith("do") ||
-            prevLineText.TrimEnd().EndsWith("{"))
+        if (trimmedText.EndsWith("then") ||
+            trimmedText.EndsWith("do") ||
+            trimmedText.EndsWith('{'))
         {
-            prevIndentation += GetIndentString();
+            indentation += GetIndentString();
         }
 
-        if (!string.IsNullOrEmpty(prevIndentation))
+        if (!string.IsNullOrEmpty(indentation))
         {
-            Document.Insert(caretOffset, prevIndentation);
-            TextArea.Caret.Offset = caretOffset + prevIndentation.Length;
+            Document.Insert(caretOffset, indentation);
+            TextArea.Caret.Offset = caretOffset + indentation.Length;
         }
     }
 
-    private bool ShouldInsertEnd(string lineText, string keyword)
+    private void HandleKeywordUnindent()
+    {
+        int caretOffset = TextArea.Caret.Offset;
+        DocumentLine currentLine = Document.GetLineByOffset(caretOffset);
+        string lineText = Document.GetText(currentLine.Offset, caretOffset - currentLine.Offset);
+        string trimmed = lineText.Trim();
+
+        if (trimmed == "end" || trimmed == "else" || trimmed == "elseif")
+        {
+            string indent = GetIndentation(currentLine);
+            int indentSize = Options.IndentationSize;
+
+            if (indent.Length >= indentSize)
+            {
+                Document.Remove(currentLine.Offset, indentSize);
+            }
+        }
+    }
+
+    private static bool ShouldInsertEnd(string lineText, string keyword)
     {
         int keywordIndex = lineText.IndexOf(keyword, StringComparison.Ordinal);
         if (keywordIndex < 0)
@@ -225,14 +309,14 @@ public class LuaTextEditor : TextEditor
 
         if (keywordIndex > 0 && char.IsLetterOrDigit(lineText[keywordIndex - 1]))
             return false;
-        
+
         int endIndex = keywordIndex + keyword.Length;
         if (endIndex < lineText.Length && char.IsLetterOrDigit(lineText[endIndex]))
             return false;
 
         if (keyword == "do")
         {
-            string afterKeyword = lineText.Substring(endIndex).Trim();
+            string afterKeyword = lineText[endIndex..].Trim();
             if (afterKeyword.Length > 0 && !afterKeyword.StartsWith("--"))
                 return false;
         }
@@ -240,7 +324,7 @@ public class LuaTextEditor : TextEditor
         if (keyword == "if" && lineText.Contains("then"))
         {
             int thenIndex = lineText.IndexOf("then", StringComparison.Ordinal);
-            string afterThen = lineText.Substring(thenIndex + 4).Trim();
+            string afterThen = lineText[(thenIndex + 4)..].Trim();
             if (!string.IsNullOrEmpty(afterThen) && !afterThen.StartsWith("--"))
                 return false;
         }
@@ -248,11 +332,53 @@ public class LuaTextEditor : TextEditor
         return true;
     }
 
+    private bool IsEndAlreadyPresentForward(int startLineNumber)
+    {
+        int openBlocksExpected = 1;
+
+        for (int i = startLineNumber; i <= Document.LineCount; i++)
+        {
+            var line = Document.GetLineByNumber(i);
+            string text = Document.GetText(line.Offset, line.Length).Trim();
+
+            if (text.StartsWith("--")) continue;
+
+            int commentIdx = text.IndexOf("--", StringComparison.Ordinal);
+            if (commentIdx >= 0) text = text[..commentIdx];
+
+            string[] tokens = ContextTokens().Split(text);
+            bool containsWhileOrFor = tokens.Contains("while") || tokens.Contains("for");
+
+            foreach (string token in tokens)
+            {
+                if (token is "function" or "if" or "while" or "for")
+                {
+                    openBlocksExpected++;
+                }
+                else if (token == "do" && !containsWhileOrFor)
+                {
+                    openBlocksExpected++;
+                }
+                else if (token == "end")
+                {
+                    openBlocksExpected--;
+                }
+            }
+
+            if (openBlocksExpected <= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private string GetIndentation(DocumentLine line)
     {
         string lineText = Document.GetText(line.Offset, line.Length);
         int indentLength = 0;
-        
+
         foreach (char c in lineText)
         {
             if (c == ' ' || c == '\t')
@@ -260,12 +386,15 @@ public class LuaTextEditor : TextEditor
             else
                 break;
         }
-        
-        return lineText.Substring(0, indentLength);
+
+        return lineText[..indentLength];
     }
 
     private string GetIndentString()
     {
         return new string(' ', Options.IndentationSize);
     }
+
+    [GeneratedRegex(@"\W+")]
+    private static partial Regex ContextTokens();
 }

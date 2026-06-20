@@ -1,4 +1,5 @@
 ﻿using LunaForge.Backend.EditorCommands;
+using LunaForge.Controls;
 using LunaForge.Models;
 using LunaForge.Models.Documents;
 using LunaForge.Models.TreeNodes;
@@ -93,36 +94,81 @@ namespace LunaForge
         {
             if (e.Key == Key.Enter)
             {
-                CommitAttributeChange(sender);
                 e.Handled = true;
+
+                bool shiftHeld = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                int direction = shiftHeld ? -1 : 1;
+                bool senderIsComboBox = sender is ComboBox;
+
+                var row = FindParent<DataGridRow>(sender as DependencyObject);
+                var dataGrid = FindParent<DataGrid>(sender as DependencyObject);
+
+                CommitAttributeChange(sender, clearFocus: dataGrid == null);
+
+                if (row != null && dataGrid != null)
+                {
+                    int newIndex = row.GetIndex() + direction;
+                    if (newIndex >= 0 && newIndex < dataGrid.Items.Count)
+                    {
+                        dataGrid.SelectedIndex = newIndex;
+                        dataGrid.ScrollIntoView(dataGrid.Items[newIndex]);
+                        dataGrid.CurrentCell = new DataGridCellInfo(dataGrid.Items[newIndex], dataGrid.Columns[1]);
+                        dataGrid.BeginEdit();
+
+                        if (senderIsComboBox)
+                        {
+                            // TODO: TextBox inside ComboBox isn't focused after pressing Enter.
+                            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+                            {
+                                var newRow = dataGrid.ItemContainerGenerator.ContainerFromIndex(newIndex) as DataGridRow;
+                                if (newRow == null)
+                                    return;
+                                var comboBox = FindChild<ComboBox>(newRow);
+                                if (comboBox == null)
+                                    return;
+                                comboBox.ApplyTemplate();
+                                if (comboBox.Template.FindName("PART_EditableTextBox", comboBox) is TextBox innerTextBox)
+                                {
+                                    innerTextBox.Focus();
+                                    innerTextBox.SelectAll();
+                                }
+                            });
+                        }
+                    }
+                    else
+                    {
+                        Keyboard.ClearFocus();
+                    }
+                }
             }
         }
 
         private void AttributeTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            CommitAttributeChange(sender);
+            CommitAttributeChange(sender, clearFocus: false);
         }
 
-        private void CommitAttributeChange(object sender)
+        private void CommitAttributeChange(object sender, bool clearFocus = true)
         {
             string newValue = null;
-            Models.TreeNodes.NodeAttribute attribute = null;
+            NodeAttribute attribute = null;
 
             if (sender is TextBox textBox)
             {
                 newValue = textBox.Text;
-                attribute = textBox.DataContext as Models.TreeNodes.NodeAttribute;
+                attribute = textBox.DataContext as NodeAttribute;
             }
             else if (sender is ComboBox comboBox)
             {
                 newValue = comboBox.Text;
-                attribute = comboBox.DataContext as Models.TreeNodes.NodeAttribute;
+                attribute = comboBox.DataContext as NodeAttribute;
             }
 
             if (attribute != null && newValue != null)
             {
                 attribute.ChangeValueWithCommand(newValue);
-                Keyboard.ClearFocus();
+                if (clearFocus)
+                    Keyboard.ClearFocus();
                 //this.Focus(); // TODO: See to fix this. Using this.Focus(); doesn't clear the focus to the control.
                 // But not doing this doesn't redirect the focus to the window, so keybinds can't be used till focus is regiven to a control.
             }
@@ -139,6 +185,20 @@ namespace LunaForge
                 return parent;
 
             return FindParent<T>(parentObject);
+        }
+
+        private static T FindChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match)
+                    return match;
+                var result = FindChild<T>(child);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
 
         #region LFD Drag/Drop
@@ -177,7 +237,6 @@ namespace LunaForge
                 return;
 
             // Special case for root or undeletable.
-            // TODO: Node Metadata for this (CanBeDragSource, CanBeDragDestination)
             if (node.ParentNode == null || !node.CanLogicallyDelete() || node.MetaData.CannotBeDragDropped)
                 return;
 
@@ -395,6 +454,32 @@ namespace LunaForge
             }
 
             attribute.OpenEditor(this);
+        }
+
+        // TODO: Somehow doesn't work.
+        // TODO: "Edit" option on the context menu.
+        private void TreeView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not TreeViewItem item || item.DataContext is not TreeNode node)
+            {
+                CoreLogger.Logger.Warning("TreeView_MouseDoubleClick: could not resolve TreeNode from sender");
+                return;                
+            }
+
+            NodeAttribute? attr = node.GetAttributeFromName(node.MetaData.InvokeName);
+            attr?.OpenEditor();
+        }
+
+        private void LuaTextEditor_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is LuaTextEditor item)
+            {
+                var viewModel = (MainWindowModel)DataContext;
+                if (viewModel.SelectedFile is DocumentFileLua luafile)
+                {
+                    luafile.TriggerUnsavedCheck();
+                }
+            }
         }
     }
 }

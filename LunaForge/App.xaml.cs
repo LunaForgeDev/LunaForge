@@ -5,6 +5,7 @@ using LunaForge.Views;
 using Serilog;
 using Velopack;
 using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace LunaForge;
 
@@ -17,6 +18,18 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        LFUpdateManager.OnUpdateFound += async (newVersion, mgr) =>
+        {
+            var result = MessageBox.Show(
+                $"A new version ({newVersion.TargetFullRelease.Version}) is available.\nWould you like to download and install it now?",
+                "Update Available",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (result == MessageBoxResult.Yes)
+                await LFUpdateManager.DownloadAndInstallUpdateAsync(newVersion, mgr);
+        };
 
         CoreLogger.Initialize();
 
@@ -53,5 +66,7 @@ public partial class App : Application
         };
         
         launcher.Show();
+
+        _ = LFUpdateManager.CheckForUpdatesAsync();
     }
 }

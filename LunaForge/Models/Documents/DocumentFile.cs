@@ -47,7 +47,7 @@ public partial class DocumentFile : ObservableObject
     [ObservableProperty, JsonIgnore]
     public TreeNode? selectedNode;
 
-    public bool IsUnsaved
+    public virtual bool IsUnsaved
     {
         get
         {
@@ -60,6 +60,7 @@ public partial class DocumentFile : ObservableObject
                 return SavedCommand != null;
             }
         }
+        set { }
     }
 
     [JsonIgnore]
@@ -149,7 +150,7 @@ public partial class DocumentFile : ObservableObject
         UpdateFileNameDisplay();
     }
 
-    private void UpdateFileNameDisplay()
+    public void UpdateFileNameDisplay()
     {
         string baseName = DisplayFileName.TrimEnd('*', ' ');
 

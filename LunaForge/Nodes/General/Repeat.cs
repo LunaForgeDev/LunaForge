@@ -40,37 +40,20 @@ public class Repeat : TreeNode
 
     public override string ToString()
     {
-        string bres = "";
-        bool first = true;
-        
-        if (!int.TryParse(NumOfVar, out int nVars))
-            nVars = 0;
-        nVars = Math.Clamp(nVars, 0, App.MaxVariablesCount);
+        var parts = new List<string>();
+        foreach (var g in IterateDynamicGroups(3))
+            if (!string.IsNullOrEmpty(g[0].Value))
+                parts.Add($"({g[0].Value} = {g[1].Value}, increment {g[2].Value})");
 
-        for (int i = 2; i <= nVars * 3 + 1; i += 3)
-        {
-            if (i < Attributes.Count && !string.IsNullOrEmpty(Attributes[i].Value))
-            {
-                if (!first)
-                    bres += ", ";
-
-                bres += $"({Attributes[i].Value} = {Attributes[i + 1].Value}, increment {Attributes[i + 2].Value})";
-                first = false;
-            }
-        }
-
-        if (first)
-            return $"Repeat {RepeatTimes} times";
-        else
-            return $"Repeat {RepeatTimes} times, {bres}";
+        return parts.Count == 0
+            ? $"Repeat {RepeatTimes} times"
+            : $"Repeat {RepeatTimes} times, {string.Join(", ", parts)}";
     }
 
     public override IEnumerable<string> ToLua(int spacing)
     {
         string sp = Indent(spacing);
-
-        if (!int.TryParse(NumOfVar, out int nVars))
-            nVars = 0;
+        int nVars = ParseAndClampCount(NumOfVar, App.MaxVariablesCount);
 
         if (nVars == 0)
         {
@@ -81,38 +64,26 @@ public class Repeat : TreeNode
         }
         else
         {
-            List<string> varNames = [];
-            List<string> initValues = [];
-            List<string> increments = [];
+            var varNames  = new List<string>();
+            var initValues = new List<string>();
+            var increments = new List<string>();
 
-            for (int i = 0; i < nVars; i++)
+            foreach (var g in IterateDynamicGroups(3))
             {
-                int baseIdx = 2 + (i * 3);
-                if (baseIdx + 2 < Attributes.Count)
-                {
-                    varNames.Add(Attributes[baseIdx].Value);
-                    initValues.Add(Attributes[baseIdx + 1].Value);
-                    increments.Add(Attributes[baseIdx + 2].Value);
-                }
+                varNames.Add(g[0].Value);
+                initValues.Add(g[1].Value);
+                increments.Add(g[2].Value);
             }
 
-            string varDecl = string.Join(", ", varNames.Select((v, i) => $"{v}, _d_{v}"));
+            string varDecl  = string.Join(", ", varNames.Select(v => $"{v}, _d_{v}"));
             string initDecl = string.Join(", ", varNames.Select((v, i) => $"({initValues[i]}), ({increments[i]})"));
-            string incrDecl = string.Join(" ", varNames.Select((v, i) => $"{v} = {v} + _d_{v}"));
+            string incrDecl = string.Join(" ", varNames.Select(v => $"{v} = {v} + _d_{v}"));
 
             yield return $"{sp}do local {varDecl} = {initDecl} for _ = 1, {RepeatTimes} do\n";
             foreach (var a in base.ToLua(spacing + 1))
                 yield return a;
             yield return $"{sp}{incrDecl} end end\n";
         }
-    }
-
-    public override IEnumerable<Tuple<int, TreeNode>> GetLines()
-    {
-        yield return new Tuple<int, TreeNode>(1, this);
-        foreach (Tuple<int, TreeNode> t in GetChildLines())
-            yield return t;
-        yield return new Tuple<int, TreeNode>(1, this);
     }
 
     public override object Clone()
@@ -124,35 +95,17 @@ public class Repeat : TreeNode
 
     private void EnsureVariableAttributes(int count)
     {
-        int currentVarCount = DynamicAttributeCount / 3;
-
-        if (currentVarCount < count)
-        {
-            for (int i = currentVarCount + 1; i <= count; i++)
-            {
-                AddDynamicAttribute($"Var {i} name", "");
-                AddDynamicAttribute($"Var {i} init value", "0");
-                AddDynamicAttribute($"Var {i} increment", "1");
-            }
-        }
-        else if (currentVarCount > count)
-        {
-            int baseIndex = 2 + (count * 3);
-            RemoveDynamicAttributesFromIndex(baseIndex);
-        }
-
-        OnPropertyChanged(nameof(ScreenString));
+        EnsureDynamicGroups(count, 3, i =>
+        [
+            ($"Var {i} name", ""),
+            ($"Var {i} init value", "0"),
+            ($"Var {i} increment", "1")
+        ]);
     }
 
     public override void OnDependencyAttributeChangedImpl(NodeAttribute attr, NodeAttributeChangedEventArgs args)
     {
         if (attr.Name == "Number of Vars")
-        {
-            if (!int.TryParse(args.NewValue, out int newCount))
-                newCount = 0;
-
-            newCount = Math.Clamp(newCount, 0, App.MaxVariablesCount);
-            EnsureVariableAttributes(newCount);
-        }
+            EnsureVariableAttributes(ParseAndClampCount(args.NewValue, App.MaxVariablesCount));
     }
 }

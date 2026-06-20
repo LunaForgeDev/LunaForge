@@ -89,7 +89,8 @@ public partial class MainWindowModel : ObservableObject
     public MainWindowModel(string projectPath)
     {
         Instance = this;
-        Project = new(projectPath);
+        if (!string.IsNullOrEmpty(projectPath))
+            Project = new(projectPath);
         InitializeProject(projectPath);
         FileViewer = new(this);
     }
@@ -103,18 +104,27 @@ public partial class MainWindowModel : ObservableObject
             if (project != null)
             {
                 Project = project;
+                project.Runner.RunningStateChanged += isRunning =>
+                    Application.Current.Dispatcher.InvokeAsync(() => IsGameRunning = isRunning);
+
                 await project.InitializePlugins();
                 RefreshNodeLibraryUI();
                 project.LoadOpenedFiles(); // Doing this here because node library isn't ready yet if I do it in the plugin init.
+                // The fuck were you thinking Runa.
                 LoadOpenedFiles();
                 
                 DiscordRPCService.Default?.SetProjectPresence(Project.Name);
             }
         }
+        catch (FileNotFoundException ex)
+        {
+            // Expected when starting the editor without a project file. Not an error.
+        }
         catch (Exception ex)
         {
             // uhhhhhhhhhhhhhhhhhhhhhhhhhhhh... what.
             Logger.Fatal($"Project failed to initialize. Reason:\n{ex}");
+            Logger.Fatal("Literally, what the fuck.");
 
             // If that happens, what the seven fucking hells did you do?
             // Help
@@ -167,7 +177,14 @@ public partial class MainWindowModel : ObservableObject
 
         timer.Tick += (s, e) =>
         {
-            EditorLog = CoreLogger.stringLog.GetStringBuilder().ToString();
+            try
+            {
+                EditorLog = CoreLogger.stringLog.GetStringBuilder().ToString();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"Failed to update editor log.");
+            }
         };
 
         timer.Start();
@@ -527,6 +544,21 @@ public partial class MainWindowModel : ObservableObject
         }
     }
 
+    private GitWindow? _gitWindow;
+    [RelayCommand]
+    private void OpenGitWindow()
+    {
+        if (_gitWindow == null || !_gitWindow.IsVisible)
+        {
+            _gitWindow = new GitWindow(Project.ProjectRoot, Application.Current.MainWindow);
+            _gitWindow.Show();
+        }
+        else
+        {
+            _gitWindow.Activate();
+        }
+    }
+
     #region Copy, Cut and Paste Commands (help)
 
     [RelayCommand(CanExecute = nameof(CanCopy))]
@@ -544,6 +576,10 @@ public partial class MainWindowModel : ObservableObject
         if (SelectedFile is DocumentFileLFD lfdFile)
         {
             return TreeNode.IsNodeSelected();
+        }
+        else if (SelectedFile is DocumentFileLua luaFile)
+        {
+            return true;
         }
         else // TODO: Handle other file types
         {
@@ -569,6 +605,10 @@ public partial class MainWindowModel : ObservableObject
         {
             return SelectedFile.SelectedNode?.CanLogicallyDelete() ?? false;
         }
+        else if (SelectedFile is DocumentFileLua luaFile)
+        {
+            return true;
+        }
         else // TODO: Handle other file types
         {
 
@@ -592,6 +632,10 @@ public partial class MainWindowModel : ObservableObject
         if (SelectedFile is DocumentFileLFD lfdFile)
         {
             return TreeNode.CanPaste();
+        }
+        else if (SelectedFile is DocumentFileLua luaFile)
+        {
+            return true;
         }
         else // TODO: Handle other file types
         {
@@ -694,4 +738,47 @@ public partial class MainWindowModel : ObservableObject
     {
         OnPropertyChanged(nameof(CurrentFileIsLFD));
     }
+
+    #region LuaSTG runner
+
+    private readonly StringBuilder gameLogBuilder = new();
+
+    [ObservableProperty]
+    private bool isGameRunning = false;
+    
+    public void AppendToGameLog(string line)
+    {
+        gameLogBuilder.AppendLine(line);
+        DebugString = gameLogBuilder.ToString();
+    }
+
+    public void ClearGameLog()
+    {
+        gameLogBuilder.Clear();
+        DebugString = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task RunProject()
+    {
+        if (Project?.Runner == null)
+        {
+            Logger.Warning("No Project loaded or runner no available.");
+            return;
+        }
+
+        ClearGameLog();
+        await Project.Runner.RunAsync();
+    }
+
+    [RelayCommand]
+    private void StopProject()
+    {
+        if (Project?.Runner == null)
+            return;
+
+        Project.Runner.Stop();
+    }
+
+    #endregion
 }

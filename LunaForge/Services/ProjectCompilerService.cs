@@ -20,7 +20,9 @@ public class ProjectCompilerService
     private Project proj { get; set; }
 
     private ConcurrentDictionary<string, string> computedMD5 = []; // If the md5 of a file changed or was created, this will be put inside the file.
+    private ConcurrentDictionary<string, string> computedImageMD5 = []; // Separate MD5 tracking for images (never cached, copied directly to output).
     private string MD5HashesFilePath => Path.Combine(proj.DotFolder, "hashes_cache.json");
+    private string ImageMD5HashesFilePath => Path.Combine(proj.DotFolder, "hashes_images_cache.json");
     private string CompileCache => Path.Combine(proj.DotFolder, "compilecache");
 
     public ProjectCompilerService(Project _proj)
@@ -28,19 +30,27 @@ public class ProjectCompilerService
         proj = _proj;
     }
 
+    private void CompiledFileHeader(ref StringBuilder sb, string relativePath)
+    {
+        sb.AppendLine($"-- Generated from {relativePath} by LunaForge {App.AppVersion}");
+        sb.AppendLine($"-- Compiled at {DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")} (dd/mm/yyyy)");
+        sb.AppendLine();
+    }
+
     public async Task<bool> Compile()
     {
-        return await Compile(null);
+        return await Compile(null, false);
     }
 
     /*
-     * TODO:
-     * - See for compiling images in a different way since it would use a lot of space to copy images into the compile cache.
-     * - Allow selecting Compile Targets in the settings as well as project packing type (plain or zip)
-     * - Compile LFS
-     * - Gather all lua files as well as lfs and lfd
+     * TODO: (Compile TODOs)
+     * - Allow selecting project packing type (plain or zip) in settings.
+     * - Compile LFS.
+     * - Gather all lua files as well as lfs and lfd.
      */
-    public async Task<bool> Compile(ICompilationTarget? target = null)
+
+    private static readonly HashSet<string> ImageExtensions = [".png", ".jpg", ".jpeg", ".webp"]; //Supported for lstg.
+    public async Task<bool> Compile(ICompilationTarget? target = null, bool forceRepack = false)
     {
         Logger.Information($"============================ Starting Compilation");
         if (target == null)
@@ -76,23 +86,45 @@ public class ProjectCompilerService
         target.PreCompile(CompileCache);
 
         // -------------------------------------------- Step 3: Collect everything and separate lfd and lfs files
-        List<string> files = [];
-        if (!CollectFiles("*.*", ref files, proj.ProjectRoot))
-            return false;
 
-        // TODO: Collect all files, copy them except for lfd and lfs (and images?) and compile those in the cache.
-
-        List<string> lfdFiles = [];
-        List<string> lfsFiles = [];
-        if (!CollectFiles("*.lfd", ref lfdFiles, proj.ProjectRoot))
+        // List of all files, key is ".*".
+        Dictionary<string, List<string>>? fileTypes = CollectFiles(proj.ProjectRoot);
+        if (fileTypes == null)
+        {
+            Logger.Error("Couldn't collect files for compilation.");
             return false;
-        if (!CollectFiles("*.lfs", ref lfsFiles, proj.ProjectRoot))
-            return false;
-        Logger.Information("Found {0} lfd files", lfdFiles.Count);
-        Logger.Information("Found {0} lfs files", lfsFiles.Count);
-        computedMD5 = ReadMD5Hashes();
+        }
+        if (fileTypes.TryGetValue(".lfd", out var lfdFiles))
+            Logger.Information("Found {0} lfd files", lfdFiles.Count);
+        if (fileTypes.TryGetValue(".lfs", out var lfsFiles))
+            Logger.Information("Found {0} lfs files", lfsFiles.Count);
+        List<string> imageFiles = [.. fileTypes.Where(kv => ImageExtensions.Contains(kv.Key)).SelectMany(kv => kv.Value)];
+        Logger.Information("Found {0} image files", imageFiles.Count);
+        if (forceRepack)
+        {
+            Logger.Information("Forcing a repack. Deleting file meta infos.");
+            if (Directory.Exists(CompileCache))
+                Directory.Delete(CompileCache, recursive: true);
+            computedMD5 = [];
+            computedImageMD5 = [];
+        }
+        else
+        {
+            computedMD5 = ReadMD5Hashes();
+            computedImageMD5 = ReadImageMD5Hashes();
+        }
 
-        // -------------------------------------------- Step 4: Compile everything (compile dependencies before?)
+        HashSet<string> currentImagePaths = [.. imageFiles];
+        foreach (string trackedImage in computedImageMD5.Keys)
+        {
+            if (!currentImagePaths.Contains(trackedImage))
+                Logger.Warning("Image '{0}' was previously tracked but no longer exists in the project. It will be missing from the output.", trackedImage);
+        }
+        //Remove orphan md5
+        foreach (string stale in computedImageMD5.Keys.Except(currentImagePaths).ToList())
+            computedImageMD5.TryRemove(stale, out _);
+
+        // -------------------------------------------- Step 4: Compile everything
         Directory.CreateDirectory(CompileCache);
 
         ConcurrentBag<bool> lfdResults = [];
@@ -115,29 +147,50 @@ public class ProjectCompilerService
             // Plain files/folders
             Logger.Debug("Compiling to plain files...");
             string output = Path.Combine(Path.GetDirectoryName(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value), target.BuildDirectory, proj.Name);
+            if (forceRepack && Directory.Exists(output))
+            {
+                Logger.Information("Force repack: deleting existing output folder '{0}'.", output);
+                Directory.Delete(output, recursive: true);
+            }
             Directory.Copy(CompileCache, output);
+            CopyImagesDirect(imageFiles, output, forceRepack);
             Logger.Information("Mod folder created at {0}", output);
         }
         else
         {
             Logger.Debug("Compiling to zip...");
             // Zip file
-            string output = Path.Combine(Path.GetDirectoryName(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value), target.BuildDirectory);
-            if (!Directory.Exists(output))
+            string outputDir = Path.Combine(Path.GetDirectoryName(proj.ProjectConfig.Get<string>("LuaSTGExecutablePath").Value), target.BuildDirectory);
+            if (!Directory.Exists(outputDir))
             {
                 Logger.Error("Output directory doesn't exist. As a matter of null-security, it will not be created for you.");
-                Logger.Error("Output directory doesn't exist: {0}", output);
+                Logger.Error("Output directory doesn't exist: {0}", outputDir);
                 return false;
             }
-            output = Path.Combine(output, $"{proj.Name}.zip");
-            if (File.Exists(output))
-                File.Delete(output); // ZipFile doesn't know how to overwrite files.
-            ZipFile.CreateFromDirectory(CompileCache, output);
+            string output = Path.Combine(outputDir, $"{proj.Name}.zip");
+            if (forceRepack && File.Exists(output))
+            {
+                Logger.Information("Force repack: deleting existing zip '{0}'.", output);
+                File.Delete(output);
+            }
+            using (ZipArchive archive = File.Exists(output)
+                ? ZipFile.Open(output, ZipArchiveMode.Update)
+                : ZipFile.Open(output, ZipArchiveMode.Create))
+            {
+                foreach (string cacheFile in Directory.GetFiles(CompileCache, "*", SearchOption.AllDirectories))
+                {
+                    string entryName = Path.GetRelativePath(CompileCache, cacheFile).Replace('\\', '/');
+                    archive.GetEntry(entryName)?.Delete();
+                    archive.CreateEntryFromFile(cacheFile, entryName);
+                }
+            }
+            AddImagesToZip(imageFiles, output, forceRepack);
             Logger.Information("Zip mod created at {0}", output);
         }
 
         // -------------------------------------------- Step 6: Put md5 hashes inside the dotfolder for next time.
         SaveMD5Hashes();
+        SaveImageMD5Hashes();
         Logger.Debug($"MD5 saved.");
 
         await Task.WhenAll();
@@ -148,7 +201,7 @@ public class ProjectCompilerService
     private bool CheckForEntryPoint()
     {
         string[] entryPoints = [.. Directory.GetFiles(proj.ProjectRoot, "main.*", SearchOption.AllDirectories)
-            .Where(f => !f.Contains(".lunaforge"))
+            .Where(f => !f.Contains(".lunaforge") || !f.Contains(".git"))
             .Where(f => f.EndsWith("main.lfd", StringComparison.OrdinalIgnoreCase)
                      || f.EndsWith("main.lua", StringComparison.OrdinalIgnoreCase))];
 
@@ -162,18 +215,34 @@ public class ProjectCompilerService
         return true;
     }
 
-    private bool CollectFiles(string extension, ref List<string> files, string folder)
+    private Dictionary<string, List<string>>? CollectFiles(string folder)
     {
         try
         {
-            string[] fileNames = Directory.GetFiles(folder, extension, SearchOption.AllDirectories);
-            files.AddRange(fileNames.Where(f => !f.Contains(".lunaforge"))); // Ignore dotfolder since it contains metadata and cache.
-            return true;
+            Dictionary<string, List<string>> results = [];
+
+            string[] fileNames = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories);
+            // Ignore dotfolder since it contains metadata and cache, as well as the project file itself.
+            foreach (string file in fileNames.Where(f => !f.Contains(".lunaforge") || !f.Contains(".git") || Path.GetExtension(f) != ".lfp"))
+            {
+                string ext = Path.GetExtension(file);
+                if (results.TryGetValue(ext, out var list))
+                {
+                    list.Add(file);
+                    results[ext] = list;
+                }
+                else
+                {
+                    list = [file];
+                    results[ext] = list;
+                }
+            }
+            return results;
         }
         catch (Exception ex)
         {
             Logger.Error($"Couldn't get files. Reason:\n{ex}");
-            return false;
+            return null;
         }
     }
 
@@ -201,10 +270,7 @@ public class ProjectCompilerService
             Logger.Debug("Created lua from lfd at {0}", cachePath);
 
             StringBuilder sb = new();
-
-            sb.AppendLine($"-- Generated from {relativePath} by LunaForge {App.AppVersion}");
-            sb.AppendLine($"-- Compiled at {DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")} (dd/mm/yyyy)");
-            sb.AppendLine();
+            CompiledFileHeader(ref sb, relativePath);
 
             foreach (TreeNode node in file.TreeNodes)
                 foreach (var line in node.ToLua(0))
@@ -230,7 +296,79 @@ public class ProjectCompilerService
 
     private async Task<bool> CompileLFSFile(string lfsFilePath, bool showOnly = false)
     {
+        // lfs are not implemented in the alpha release.
+
+        string relativePath = Path.GetRelativePath(proj.ProjectRoot, lfsFilePath);
+        string relativeLuaPath = Path.ChangeExtension(relativePath, ".hlsl");
+
+        StringBuilder sb = new();
+        CompiledFileHeader(ref sb, relativePath);
+
         return false;
+    }
+
+    private void CopyImagesDirect(List<string> imageFiles, string outputFolder, bool force = false)
+    {
+        foreach (string imgPath in imageFiles)
+        {
+            string relativePath = Path.GetRelativePath(proj.ProjectRoot, imgPath);
+            string destPath = Path.Combine(outputFolder, relativePath);
+            string? currentMD5 = ComputeImageMD5(imgPath);
+            if (!force
+                && currentMD5 != null
+                && computedImageMD5.TryGetValue(imgPath, out string? cachedMD5)
+                && cachedMD5 == currentMD5
+                && File.Exists(destPath))
+            {
+                Logger.Verbose("Skipped unchanged image {0}", relativePath);
+                continue;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            File.Copy(imgPath, destPath, overwrite: true);
+            if (currentMD5 != null)
+                computedImageMD5[imgPath] = currentMD5;
+            Logger.Verbose("Copied image {0}", relativePath);
+        }
+    }
+
+    private void AddImagesToZip(List<string> imageFiles, string zipPath, bool force = false)
+    {
+        using ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update);
+        foreach (string imgPath in imageFiles)
+        {
+            string relativePath = Path.GetRelativePath(proj.ProjectRoot, imgPath);
+            string entryName = relativePath.Replace('\\', '/');
+            string? currentMD5 = ComputeImageMD5(imgPath);
+            if (!force
+                && currentMD5 != null
+                && computedImageMD5.TryGetValue(imgPath, out string? cachedMD5)
+                && cachedMD5 == currentMD5
+                && archive.GetEntry(entryName) != null)
+            {
+                Logger.Verbose("Skipped unchanged image {0}", relativePath);
+                continue;
+            }
+            archive.GetEntry(entryName)?.Delete();
+            archive.CreateEntryFromFile(imgPath, entryName, CompressionLevel.NoCompression);
+            if (currentMD5 != null)
+                computedImageMD5[imgPath] = currentMD5;
+            Logger.Verbose("Added image to zip {0}", relativePath);
+        }
+    }
+
+    private string? ComputeImageMD5(string imagePath)
+    {
+        try
+        {
+            using FileStream fs = new(imagePath, FileMode.Open, FileAccess.Read);
+            var md5 = System.Security.Cryptography.MD5.Create();
+            return Encoding.Default.GetString(md5.ComputeHash(fs));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning("Couldn't compute MD5 for image '{0}': {1}", imagePath, ex.Message);
+            return null;
+        }
     }
 
     private ConcurrentDictionary<string, string> ReadMD5Hashes()
@@ -261,6 +399,37 @@ public class ProjectCompilerService
         catch (Exception ex)
         {
             Logger.Error($"Couldn't save md5 file hash file. Reason:\n{ex}");
+        }
+    }
+
+    private ConcurrentDictionary<string, string> ReadImageMD5Hashes()
+    {
+        try
+        {
+            if (!File.Exists(ImageMD5HashesFilePath))
+                return [];
+
+            string contents = File.ReadAllText(ImageMD5HashesFilePath, Encoding.UTF8);
+            var dict = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(contents);
+            return dict != null ? new(dict) : [];
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Couldn't read image md5 hash file. Reason:\n{ex}");
+            return [];
+        }
+    }
+
+    private void SaveImageMD5Hashes()
+    {
+        try
+        {
+            string json = JsonConvert.SerializeObject(computedImageMD5, Formatting.Indented);
+            File.WriteAllText(ImageMD5HashesFilePath, json, Encoding.UTF8);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Couldn't save image md5 hash file. Reason:\n{ex}");
         }
     }
 }

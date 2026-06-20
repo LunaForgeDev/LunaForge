@@ -1,6 +1,7 @@
 ﻿using LunaForge.Models;
 using Serilog;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using Tomlyn;
 
@@ -13,6 +14,8 @@ public class LuaSTGInstance
     public Dictionary<string, string> Libraries { get; set; } = []; // Key=name, Value=version
     public string Path { get; set; } = string.Empty;
 
+    public string DisplayName => $"{BranchName} {BranchVersion}";
+
     public override string ToString() => $"{BranchName} {BranchVersion}";
 }
 
@@ -20,7 +23,7 @@ public static class LuaSTGInstancesService
 {
     private static readonly ILogger Logger = CoreLogger.Create("LuaSTGInstancesService");
     private static readonly List<LuaSTGInstance> _instances = [];
-    public static IReadOnlyList<LuaSTGInstance> Instances => _instances;
+    public static ObservableCollection<LuaSTGInstance> Instances => [.. _instances];
 
     public static void Initialize()
     {

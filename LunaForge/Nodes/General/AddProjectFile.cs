@@ -11,7 +11,8 @@ namespace LunaForge.Nodes.General;
 
 [Serializable, NodeIcon("addprojectfile.png")]
 [LeafNode]
-public partial class AddProjectFile : TreeNode
+[Invoke(nameof(File))]
+public partial class AddProjectFile : TreeNode, ICanBeLocal
 {
     public override string NodeName { get; set; } = "AddProjectFile";
 
@@ -26,7 +27,7 @@ public partial class AddProjectFile : TreeNode
         : base(workspace)
     {
         File = file;
-        AsModule = asModule;
+        IsLocal = asModule;
         ModuleName = moduleName;
     }
 
@@ -36,7 +37,7 @@ public partial class AddProjectFile : TreeNode
 
     [JsonIgnore]
     [NodeAttribute("false", "As Module ?")]
-    public string AsModule { get; set; } = "false";
+    public string IsLocal { get; set; } = "false";
 
     [JsonIgnore]
     [NodeAttribute("", "Module Name")]
@@ -55,7 +56,7 @@ public partial class AddProjectFile : TreeNode
 
         string sp = Indent(spacing);
         string code = sp;
-        if (AsModule == "true")
+        if (IsLocal == "true")
             code += $"local {ModuleName} = ";
 
         if (Path.GetExtension(File) == ".lfd" || Path.GetExtension(File) == ".lua")
@@ -71,7 +72,7 @@ public partial class AddProjectFile : TreeNode
 
     public override string ToString()
     {
-        if (AsModule == "true" && string.IsNullOrEmpty(ModuleName))
+        if (IsLocal == "true" && string.IsNullOrEmpty(ModuleName))
         {
             moduleNameIsEmptyAndIsModule ??= CommitTrace(TraceSeverity.Error, "Module name must not be empty when 'As Module' is true.");
         }
@@ -92,7 +93,7 @@ public partial class AddProjectFile : TreeNode
         }
 
         string str = $"Add file '{File}' to the project";
-        if (AsModule == "true")
+        if (IsLocal == "true")
             str += " as a module";
 
         return str;

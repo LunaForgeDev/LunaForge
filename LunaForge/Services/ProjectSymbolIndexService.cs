@@ -2,12 +2,14 @@
 using LunaForge.Models;
 using LunaForge.Models.Documents;
 using LunaForge.Models.TreeNodes;
+using LunaForge.Nodes;
 using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace LunaForge.Services;
@@ -16,18 +18,10 @@ public class ExportedSymbol
 {
     public string Name { get; set; }
     public string SourceFile { get; set; }
-    public SymbolType Type { get; set; }
+    public string Type { get; set; } = "Object";
     public List<string> Parameters { get; set; } = [];
     public DateTime LastModified { get; set; }
-}
-
-/// <summary>
-/// TODO: Replace this with all the available class types from plugins.
-/// </summary>
-public enum SymbolType
-{
-    Object,
-    Function,
+    public bool IsLocal { get; set; } = false; // Only visible in source file or scope.
 }
 
 public struct SymbolIndexChangedEventArgs
@@ -304,7 +298,7 @@ public class ProjectSymbolIndexService : IDisposable
                 {
                     Name = exportName,
                     SourceFile = doc.FilePath,
-                    Type = GuessSymbolType(exportName),
+                    Type = exportName,
                     LastModified = DateTime.Now,
                 });
             }
@@ -312,59 +306,75 @@ public class ProjectSymbolIndexService : IDisposable
         }
 
         foreach (var rootNode in doc.TreeNodes)
-            ExtractExportsFromNode(rootNode, ref exports, doc.FilePath);
+            ExtractExportsFromNode(rootNode, ref exports, doc.FilePath, false);
 
         return exports;
     }
 
-    private void ExtractExportsFromNode(TreeNode node, ref List<ExportedSymbol> exports, string sourceFile)
+    private void ExtractExportsFromNode(TreeNode node, ref List<ExportedSymbol> exports, string sourceFile, bool inLocalScope)
     {
-        var nodeName = node.NodeName;
+        bool nodeOpensLocalScope = node is ICanBeLocal localNode
+            && localNode.IsLocal.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+        bool currentScope = inLocalScope || nodeOpensLocalScope;
 
         if (IsExportableNode(node))
         {
             exports.Add(new()
             {
-                Name = nodeName,
+                Name = node.NodeName,
                 SourceFile = sourceFile,
                 Type = DetermineSymbolTypeFromNode(node),
+                Parameters = [.. DetermineParametersFromNode(node)],
                 LastModified = DateTime.Now
             });
         }
 
         foreach (var child in node.Children)
-            ExtractExportsFromNode(child, ref exports, sourceFile);
+            ExtractExportsFromNode(child, ref exports, sourceFile, currentScope);
     }
 
     private bool IsExportableNode(TreeNode node)
     {
         Type nodeType = node.GetType();
-        return nodeType.IsDefined(typeof(ClassAttribute), false);
+        return nodeType.IsDefined(typeof(ExportSymbolAttribute), false);
     }
 
-    private SymbolType DetermineSymbolTypeFromNode(TreeNode node)
+    private string DetermineSymbolTypeFromNode(TreeNode node)
     {
-        // TODO: Get from attribute
-        return SymbolType.Object;
+        var attr = node.GetType().GetCustomAttribute<ExportSymbolAttribute>();
+        return attr?.SymbolType ?? "Object";
     }
 
-    private SymbolType GuessSymbolType(string name)
+    private string[] DetermineParametersFromNode(TreeNode node)
     {
-        // TODO: Rework this
-        if (char.IsUpper(name[0]))
-            return SymbolType.Object;
-        return SymbolType.Function;
+        var attr = node.GetType().GetCustomAttribute<ExportSymbolAttribute>();
+        return attr?.Parameters ?? [];
     }
 
     public List<ExportedSymbol> GetAvailableSymbols(string filePath)
     {
-        return null;
-    }
+        List<ExportedSymbol> results = [];
+        string relativePath = Path.GetRelativePath(project.ProjectRoot, filePath);
 
+        if (fileExports.TryGetValue(relativePath, out var ownSymbols))
+            results.AddRange(ownSymbols);
+
+        if (fileDependencies.TryGetValue(relativePath, out var deps))
+        {
+            foreach (var dep in deps)
+            {
+                if (fileExports.TryGetValue(dep, out var depSymbols))
+                    results.AddRange(depSymbols.Where(s => !s.IsLocal));
+            }
+        }
+
+        return results;
+    }
 
     public List<ExportedSymbol> GetLibrarySymbols()
     {
-        return null;
+        return [.. fileExports.Values.SelectMany(symbols => symbols).Where(s => !s.IsLocal)];
     }
 
     private void SaveIndex()

@@ -34,6 +34,8 @@ public partial class TreeNodeMetaData() : ObservableObject
     public bool unique = false;
     [ObservableProperty]
     public bool cannotBeDragDropped = false;
+    [ObservableProperty]
+    public string invokeName = string.Empty;
 
     public static TreeNodeMetaData Process(TreeNode node)
     {
@@ -49,7 +51,8 @@ public partial class TreeNodeMetaData() : ObservableObject
             Icon = LoadIconFromAssembly(t.Assembly, iconPath),
             RequireParent = GetTypes(t.GetCustomAttribute<RequireParentAttribute>()?.ParentType ?? []),
             Unique = t.IsDefined(typeof(UniqueAttribute), false),
-            CannotBeDragDropped = t.IsDefined(typeof(CannotDragDropAttribute), false)
+            CannotBeDragDropped = t.IsDefined(typeof(CannotDragDropAttribute), false),
+            InvokeName = t.GetCustomAttribute<InvokeAttribute>()?.Name ?? string.Empty
         };
         var attrs = t.GetCustomAttributes<RequireAncestorAttribute>();
         meta.RequireAncestor = null;

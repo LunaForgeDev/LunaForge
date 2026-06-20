@@ -9,8 +9,7 @@ This is a list of features I want to have in the first alpha release of LunaForg
 - [ ] LUA editor
 - [X] LFD editor
 - [ ] THlib support (including all nodes from Sharp-X)
-- [ ] Cyn environment support
-- [ ] Traces system (missing a lot of messages, and global filtering)
+- [X] Traces system (missing a lot of messages, and global filtering)
 - [ ] LuaSTG Instances and Libraries manager (downloading, locating, ...)
 - [ ] Editor and Project settings
 - [X] Plugin system
@@ -21,15 +20,19 @@ This is a list of features I want to have in the first alpha release of LunaForg
 - [ ] Base Project templates
 - [ ] Base file templates
 - [ ] Object Indexer (half-implemented)
+- [ ] `require()` to cross-files + Load File node (with local option + module local name)
 - [X] AddNode helper window
 - [ ] Presets (save and insert)
 - [ ] Edit Windows
+- [ ] Git integration
 
 ## Beta release roadmap
 - [ ] Plugin store (in-editor and website)
 - [ ] LFS (Shader) Editor
 - [ ] UI identity
 - [ ] Stream Deck integration
+- [ ] Cyn environment support
+- [ ] Pattern emulator (On-the-fly TreeNodes compilation to pattern on the screen)
 
 ## Secondary Concerns
 These features are low priority and may not be implemented in alpha or beta.

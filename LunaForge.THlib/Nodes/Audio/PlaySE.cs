@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LunaForge.THlib.Nodes;
+namespace LunaForge.THlib.Nodes.Audio;
 
 [Serializable]
 [LeafNode, NodeIcon("playsound.png")]

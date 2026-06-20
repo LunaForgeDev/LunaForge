@@ -1,0 +1,306 @@
+﻿<Window x:Class="LunaForge.Views.GitWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LunaForge.Views"
+        xmlns:vm="clr-namespace:LunaForge.ViewModels"
+        xmlns:tools="clr-namespace:LunaForge.Tools"
+        mc:Ignorable="d"
+        Title="Git"
+        Width="820" Height="620"
+        MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterOwner">
+    <Window.DataContext>
+        <vm:GitVM/>
+    </Window.DataContext>
+    <Window.Resources>
+        <tools:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ToolBar Grid.Row="0">
+            <Label Content="Branch:"/>
+            <TextBlock Text="{Binding CurrentBranch}"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"
+                       Margin="0,0,16,0"/>
+            <Separator/>
+            <Button Content="Pull"
+                    Command="{Binding PullCommand}"
+                    Margin="2,0"/>
+            <Button Content="Push"
+                    Command="{Binding PushCommand}"
+                    Margin="2,0"/>
+            <Separator/>
+            <Button Content="Refresh"
+                    Command="{Binding RefreshCommand}"
+                    Margin="2,0"/>
+        </ToolBar>
+
+        <TabControl Grid.Row="1" Grid.RowSpan="2"
+                    Margin="4"
+                    IsEnabled="{Binding IsNotBusy}">
+            <TabItem Header="Changes">
+                <Grid Margin="4">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsNotInitialized, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="No git repository in this project."
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <Button Content="Create Repository"
+                                Command="{Binding InitRepoCommand}"
+                                HorizontalAlignment="Center"
+                                Padding="10,4"/>
+                    </StackPanel>
+
+                    <TextBlock Text="Working..."
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontStyle="Italic"
+                               Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                    <Grid Visibility="{Binding IsInitialized, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="4"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <DockPanel Grid.Column="0">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                                <Label Content="Unstaged"
+                                       FontWeight="SemiBold"/>
+                                <Button DockPanel.Dock="Right"
+                                        Content="Stage All"
+                                        Command="{Binding StageAllCommand}"
+                                        Padding="6,2"/>
+                            </DockPanel>
+
+                            <DockPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                                <Button Content="Stage Selected"
+                                        Command="{Binding StageSelectedCommand}"
+                                        HorizontalAlignment="Right"
+                                        Padding="6,2"/>
+                            </DockPanel>
+
+                            <ListBox ItemsSource="{Binding UnstagedFiles}"
+                                     SelectedItem="{Binding SelectedUnstagedFile}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding StatusIcon}"
+                                                       Width="16"
+                                                       Foreground="DarkGoldenrod"/>
+                                            <TextBlock Text="{Binding Path}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+
+                        <GridSplitter Grid.Column="1"
+                                      Width="4"
+                                      HorizontalAlignment="Stretch"
+                                      ResizeBehavior="PreviousAndNext"/>
+
+                        <DockPanel Grid.Column="2">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                                <Label Content="Staged"
+                                       FontWeight="SemiBold"/>
+                                <Button DockPanel.Dock="Right"
+                                        Content="Unstage All"
+                                        Command="{Binding UnstageAllCommand}"
+                                        Padding="6,2"/>
+                            </DockPanel>
+
+                            <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                                <Button Content="Unstage Selected"
+                                        Command="{Binding UnstageSelectedCommand}"
+                                        HorizontalAlignment="Left"
+                                        Padding="6,2"
+                                        Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding CommitMessage, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True"
+                                         Height="64"
+                                         TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         VerticalContentAlignment="Top"
+                                         Padding="4"
+                                         Margin="0,0,0,4"/>
+                                <Button Content="Commit"
+                                        Command="{Binding CommitCommand}"
+                                        HorizontalAlignment="Right"
+                                        Padding="10,4"/>
+                            </StackPanel>
+
+                            <ListBox ItemsSource="{Binding StagedFiles}"
+                                     SelectedItem="{Binding SelectedStagedFile}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding StatusIcon}"
+                                                       Width="16"
+                                                       Foreground="DarkGreen"/>
+                                            <TextBlock Text="{Binding Path}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="History">
+                <DockPanel Margin="4">
+                    <Label DockPanel.Dock="Top"
+                           Content="Commit Log"
+                           FontWeight="SemiBold"/>
+                    <ListView ItemsSource="{Binding CommitLog}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="SHA"
+                                                DisplayMemberBinding="{Binding ShortSha}"
+                                                Width="60"/>
+                                <GridViewColumn Header="Author"
+                                                DisplayMemberBinding="{Binding Author}"
+                                                Width="120"/>
+                                <GridViewColumn Header="Message"
+                                                DisplayMemberBinding="{Binding Message}"
+                                                Width="360"/>
+                                <GridViewColumn Header="Date"
+                                                DisplayMemberBinding="{Binding WhenDisplay}"
+                                                Width="130"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="Branches">
+                <Grid Margin="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="4"/>
+                        <ColumnDefinition Width="220"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Branch list -->
+                    <DockPanel Grid.Column="0">
+                        <Label DockPanel.Dock="Top"
+                               Content="Branches"
+                               FontWeight="SemiBold"/>
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                            <Button Content="Checkout Selected"
+                                    Command="{Binding CheckoutBranchCommand}"
+                                    CommandParameter="{Binding SelectedItem,
+                                                       ElementName=BranchList}"
+                                    HorizontalAlignment="Left"
+                                    Padding="6,2"/>
+                        </DockPanel>
+                        <ListBox x:Name="BranchList"
+                                 ItemsSource="{Binding Branches}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="* "
+                                                   FontWeight="Bold"
+                                                   Foreground="DodgerBlue"
+                                                   Visibility="{Binding IsCurrentBranch, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding Name}"/>
+                                        <TextBlock Text=" (remote)"
+                                                   Foreground="Gray"
+                                                   Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <GridSplitter Grid.Column="1"
+                                  Width="4"
+                                  HorizontalAlignment="Stretch"
+                                  ResizeBehavior="PreviousAndNext"/>
+
+                    <ScrollViewer Grid.Column="2"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="8,0,0,0">
+                            <Label Content="New Branch"
+                                   FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding NewBranchName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                            <Button Content="Create Branch"
+                                    Command="{Binding CreateBranchCommand}"
+                                    HorizontalAlignment="Left"
+                                    Padding="6,2"
+                                    Margin="0,0,0,12"/>
+
+                            <Separator Margin="0,0,0,12"/>
+
+                            <Label Content="Identity"
+                                   FontWeight="SemiBold"/>
+                            <Label Content="Name"/>
+                            <TextBox Text="{Binding AuthorName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                            <Label Content="Email"/>
+                            <TextBox Text="{Binding AuthorEmail, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                            <Button Content="Save Config"
+                                    Command="{Binding SaveConfigCommand}"
+                                    HorizontalAlignment="Left"
+                                    Padding="6,2"
+                                    Margin="0,0,0,12"/>
+
+                            <Separator Margin="0,0,0,12"/>
+
+                            <Label Content="Remote"
+                                   FontWeight="SemiBold"/>
+                            <Label Content="Name"/>
+                            <TextBox Text="{Binding RemoteName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                            <Label Content="URL"/>
+                            <TextBox Text="{Binding RemoteUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,4"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <StatusBar Grid.Row="3">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsError}" Value="True">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding UnstagedFiles.Count}"/>
+                    <TextBlock Text=" unstaged  "/>
+                    <TextBlock Text="{Binding StagedFiles.Count}"/>
+                    <TextBlock Text=" staged"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

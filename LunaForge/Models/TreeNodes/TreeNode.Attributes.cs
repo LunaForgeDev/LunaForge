@@ -240,5 +240,56 @@ public partial class TreeNode
 
     public int DynamicAttributeCount => Attributes.Count(a => a.IsDynamic);
 
+    public void EnsureDynamicGroups(int count, int stride, Func<int, IEnumerable<(string name, string defaultValue)>> factory)
+    {
+        int currentCount = DynamicAttributeCount / stride;
+
+        if (currentCount < count)
+        {
+            for (int i = currentCount + 1; i <= count; i++)
+                foreach (var (name, defaultValue) in factory(i))
+                    AddDynamicAttribute(name, defaultValue);
+        }
+        else if (currentCount > count)
+        {
+            int staticCount = Attributes.Count - DynamicAttributeCount;
+            int baseIndex = staticCount + (count * stride);
+            RemoveDynamicAttributesFromIndex(baseIndex);
+        }
+
+        OnPropertyChanged(nameof(ScreenString));
+    }
+
+    public IEnumerable<NodeAttribute[]> IterateDynamicGroups(int stride)
+    {
+        var dynamics = Attributes.Where(a => a.IsDynamic).ToList();
+        for (int i = 0; i + stride <= dynamics.Count; i += stride)
+        {
+            var group = new NodeAttribute[stride];
+            for (int j = 0; j < stride; j++)
+                group[j] = dynamics[i + j];
+            yield return group;
+        }
+    }
+
+    protected static int ParseAndClampCount(string value, int max)
+    {
+        if (!int.TryParse(value, out int count))
+            count = 0;
+        return Math.Clamp(count, 0, max);
+    }
+
+    public NodeAttribute? GetAttributeFromName(string name)
+    {
+        return Attributes.FirstOrDefault(a => a.Name == name) ?? null;
+    }
+
+    public NodeAttribute? GetAttributeFromIndex(int idx)
+    {
+        if (Attributes.Count < idx)
+            return null;
+        return GetAttributeFromName(Attributes[idx].Name);
+    }
+
     #endregion
 }

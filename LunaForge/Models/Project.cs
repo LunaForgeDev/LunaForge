@@ -38,10 +38,12 @@ public class Project : IDisposable
     public ConfigSystem ProjectConfig = new();
 
     public ProjectCompilerService Compiler = null!;
+    public GameRunnerService Runner = null!;
 
     public Project()
     {
         Compiler = new(this);
+        Runner = new(this);
     }
 
     public Project(string folder)

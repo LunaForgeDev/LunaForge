@@ -133,6 +133,7 @@
         <!-- Lua Editor -->
         <DataTemplate x:Key="LuaEditorTemplate">
             <controls:LuaTextEditor
+                TextChanged="LuaTextEditor_TextChanged"
                 Text="{Binding FileContent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                 FontSize="12"
                 ShowLineNumbers="True"
@@ -147,7 +148,8 @@
             <TreeView ItemsSource="{Binding TreeNodes}"
                       FontFamily="Consolas"
                       VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling">
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      MouseDoubleClick="TreeView_MouseDoubleClick">
                 <TreeView.ItemTemplate>
                     <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                         <StackPanel Orientation="Horizontal">
@@ -402,6 +404,10 @@
         <KeyBinding Key="Up" Modifiers="Alt" Command="{Binding SwitchInsertModeCommand}" CommandParameter="Before"/>
         <KeyBinding Key="Down" Modifiers="Alt" Command="{Binding SwitchInsertModeCommand}" CommandParameter="After"/>
         <KeyBinding Key="Right" Modifiers="Alt" Command="{Binding SwitchInsertModeCommand}" CommandParameter="Child"/>
+        <KeyBinding Key="G" Modifiers="Ctrl+Shift" Command="{Binding OpenGitWindowCommand}"/>
+        <KeyBinding Key="F4" Command="{Binding CompileProjectCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding RunProjectCommand}"/>
+        <KeyBinding Key="F8" Command="{Binding StopProjectCommand}"/>
     </Window.InputBindings>
     <DockPanel>
         <Border DockPanel.Dock="Top">
@@ -525,7 +531,23 @@
                     
                 </MenuItem>
                 <MenuItem Header="_Git">
-
+                    <MenuItem Header="_Open Git Panel"
+                              InputGestureText="Ctrl+Shift+G"
+                              Command="{Binding OpenGitWindowCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Stage _All"
+                              Command="{Binding QuickStageAllCommand}"/>
+                    <MenuItem Header="_Commit"
+                              Command="{Binding QuickCommitCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="_Pull"
+                              Command="{Binding QuickPullCommand}"/>
+                    <MenuItem Header="P_ush"
+                              Command="{Binding QuickPushCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="_Initialize Repository"
+                              Command="{Binding InitRepoCommand}"
+                              IsEnabled="{Binding IsGitRepoMissing}"/>
                 </MenuItem>
                 <MenuItem Header="_Help">
                     <MenuItem Header="_About" Command="{Binding OpenAboutCommand}"/>
@@ -579,18 +601,17 @@
                         <Image Source="/Images/paste.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
                     <Separator/>
-                    
-                    <!-- Delete -->
-                    <Button ToolTip="Delete (Del)">
-                        <Image Source="/Images/delete.png" Stretch="Fill" Width="24" Height="24"/>
-                    </Button>
-                    <Separator/>
 
                     <Button Command="{Binding CompileProjectCommand}" ToolTip="Compile Project (F4)">
                         <Image Source="/Images/pack.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
-                    <Button ToolTip="Run Project (F5)">
+                    <Button Command="{Binding RunProjectCommand}" ToolTip="Run Project (F5)"
+                            Visibility="{Binding IsGameRunning, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
                         <Image Source="/Images/run.png" Stretch="Fill" Width="24" Height="24"/>
+                    </Button>
+                    <Button Command="{Binding StopProjectCommand}" ToolTip="Stop Project (F8)"
+                            Visibility="{Binding IsGameRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Image Source="/Images/delete.png" Stretch="Fill" Width="24" Height="24"/>
                     </Button>
                     <Button ToolTip="Test Spell-Card (F6)">
                         <Image Source="/Images/debugsc.png" Stretch="Fill" Width="24" Height="24"/>
@@ -810,7 +831,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="35"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding FileName, Mode=OneWay}"
+                                <TextBlock Text="{Binding DisplayFileName, Mode=OneWay}"
                                            Grid.Column="0"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding IsUnsaved, Converter={StaticResource IsUnsavedToColorConverter}}"/>

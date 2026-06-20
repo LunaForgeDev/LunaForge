@@ -41,7 +41,7 @@ public partial class FileViewerModel : ObservableObject, IDisposable, ITraceSour
     private void CheckMainFile()
     {
         string[] entryPoints = [.. Directory.GetFiles(MainWindowModel.Project!.ProjectRoot, "main.*", SearchOption.AllDirectories)
-            .Where(f => !f.Contains(".lunaforge"))
+            .Where(f => !f.Contains(".lunaforge") || !f.Contains(".git"))
             .Where(f => f.EndsWith("main.lfd", StringComparison.OrdinalIgnoreCase)
                      || f.EndsWith("main.lua", StringComparison.OrdinalIgnoreCase))];
 
@@ -188,7 +188,7 @@ public partial class FileViewerModel : ObservableObject, IDisposable, ITraceSour
     {
         SafeDispatcherInvoke(() =>
         {
-            if (e.FullPath.Contains(".lunaforge"))
+            if (e.FullPath.Contains(".lunaforge") || e.FullPath.Contains(".git"))
                 return;
             try
             {
