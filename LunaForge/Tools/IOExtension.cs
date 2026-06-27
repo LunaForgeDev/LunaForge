@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace LunaForge.Tools;
@@ -36,6 +37,31 @@ public static class DirectoryExtension
                 DirectoryInfo nextDestSubDir = dest.CreateSubdirectory(dirSourceSubDir.Name);
                 CopyAll(dirSourceSubDir, nextDestSubDir);
             }
+        }
+    }
+}
+
+public static partial class FileExtension
+{
+    [LibraryImport("kernel32.dll", EntryPoint = "DeleteFileW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DeleteFile(string lpFileName);
+
+    extension(File)
+    {
+        /// <summary>
+        /// Unlocks a DLL by deleting the MOTW.
+        /// </summary>
+        /// <param name="filePath">Full path to DLL.</param>
+        /// <returns>True if the unlocking was sucessful. False if the file wasn't locked.</returns>
+        /// <exception cref="FileNotFoundException">File is not found.</exception>
+        public static bool UnblockDll(string filePath)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException("Specified file doesn't exist.", filePath);
+
+            string zoneId = $"{filePath}:Zone.Identifier";
+            return DeleteFile(zoneId);
         }
     }
 }

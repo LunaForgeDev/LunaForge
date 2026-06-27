@@ -11,6 +11,7 @@
     <PackageIcon>Icon.png</PackageIcon>
 	<EnableDefaultApplicationDefinition>true</EnableDefaultApplicationDefinition>
 	<StartupObject>LunaForge.Program</StartupObject>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
